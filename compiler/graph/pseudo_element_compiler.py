@@ -12,7 +12,7 @@ from typing import Any, Dict
 
 import yaml
 
-from compiler import compiler_base_dir
+from compiler import root_base_dir
 
 support_list = ["logging", "qos", "null", "ratelimit", "hotel-acl"]
 
@@ -27,10 +27,9 @@ def pseudo_gen_property(element) -> Dict[str, Dict[str, Any]]:
         A dictionary containing element properties on the request/response chain.
     """
     property = {"request": dict(), "response": dict()}
-    for spec in element.spec:
-        filename = spec.split("/")[-1].replace("sql", "yaml")
-        property_file = os.path.join(compiler_base_dir, "elements/property", filename)
-        assert os.path.isfile(property_file), f"property file for {spec} not exist"
+    for name in element.name:
+        property_file = os.path.join(root_base_dir, "examples/property", f"{name}.yaml")
+        assert os.path.isfile(property_file), f"property file for {name} not exist"
         with open(property_file, "r") as f:
             current_dict = yaml.safe_load(f)
         for t in ["request", "response"]:

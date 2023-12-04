@@ -19,12 +19,12 @@ def fetch_global_id() -> str:
 
 class AbsElement:
     def __init__(self, info: Union[Dict[str, Any], str]):
-        if info == "INPUT" or info == "OUTPUT":
+        if info == "NETWORK":
             self.name = info
+            self.position = "N"
         else:
             self.id = fetch_global_id()
             self.name: List[str] = [info["name"]]
-            self.spec: List[str] = [info["spec"]]
             self.config = info["config"]
             self.position = info["position"]
 
@@ -34,12 +34,14 @@ class AbsElement:
 
     @property
     def deploy_name(self) -> str:
+        names = []
+        for name in self.name:
+            names.append("".join(map(lambda s: s.capitalize(), name.split("_"))))
         return "".join(self.name)
 
     @property
     def lib_name(self) -> str:
-        names = [sname.split("/")[-1].split(".")[0] for sname in self.spec]
-        return "_".join(names)
+        return "_".join(self.name)
 
     @property
     def configs(self) -> str:
@@ -56,37 +58,86 @@ class AbsElement:
             expand=False,
         )
 
+    def set_property_source(self, pseudo_property: bool):
+        self.pseudo_property = pseudo_property
+
     @property
     def prop(self):
         if not hasattr(self, "_prop"):
-            self._prop = compile_element_property(self.lib_name)
+            if self.name == "NETWORK":
+                self._prop = {
+                    "request": {
+                        "delay": True,
+                    },
+                    "response": {
+                        "delay": True,
+                    },
+                }
+            else:
+                assert hasattr(self, "pseudo_property"), "property source not set"
+                if self.pseudo_property:
+                    self._prop = pseudo_gen_property(self)
+                else:
+                    self._prop = compile_element_property(self.lib_name)
+                # TODO: remove this after property compiler has deduplication
+                for path in ["request", "response"]:
+                    for p in self._prop[path].keys():
+                        if isinstance(self._prop[path][p], list):
+                            self._prop[path][p] = list(set(self._prop[path][p]))
         return self._prop
 
-    def gen_property(self, pseudo: bool):
-        """Generate properties of the element.
+    def has_prop(self, path: str, *props) -> bool:
+        """Check whether the element has at least one of the listed properties.
 
         Args:
-            pseudo: If true, call the pseudo element compiler to generate properties.
-        """
-        self.prop = compile_element_property(self.lib_name)
-        # if pseudo:
-        #     self.property = pseudo_gen_property(self)
-        # else:
-        #     # self.property: Dict[str, Dict[str, Any]] = {
-        #     #     "request": dict(),
-        #     #     "response": dict(),
-        #     # }
-        #     self.property = compile_element_property(self.lib_name)
-        #     print(self.property)
-        #     assert 0
-        #     # TODO: call element compiler to generate properties
+            path: "request" or "response"
+            props: several property names
 
-    def has_prop(self, path: str, *props) -> bool:
-        assert path in ["request", "response"], "path = {path} not available"
+        Returns:
+            at least one property exist => True
+            all property not exist => False
+        """
+        assert path in ["request", "response"], f"path = {path} not exist"
         for p in props:
-            if p in self.prop[path] and self.prop[path][p] == True:
-                return True
+            if p in self.prop[path]:
+                if isinstance(self.prop[path][p], list):
+                    return True
+                elif self.prop[path][p] is True:
+                    return True
         return False
+
+    def get_prop(self, path: str, p: str) -> Union[List[str], bool]:
+        """Get property
+
+        Args:
+            path: "request" or "response"
+            p: property name
+
+        Returns:
+        """
+        assert path in ["request", "response"], f"path = {path} not exist"
+        if p in self.prop[path]:
+            return self.prop[path][p]
+        else:
+            return []
+
+    def add_prop(self, path: str, p: str, contents: Union[str, List[str]]):
+        """Add property
+
+        Args:
+            path: "request" or "response"
+            p: property name
+            contents: new contents to be added
+        """
+        assert path in ["request", "response"], f"path = {path} not exist"
+        if p not in self.prop[path]:
+            self.prop[path][p] = []
+        if isinstance(contents, str):
+            self.prop[path][p].append(contents)
+        elif isinstance(contents, list):
+            self.prop[path][p].extend(contents)
+        else:
+            raise ValueError
 
     def fuse(self, other: AbsElement):
         """Fuse another element in
@@ -95,7 +146,6 @@ class AbsElement:
             other: the element to be fused.
         """
         self.name.extend(other.name)
-        self.spec.extend(other.spec)
         self.config.extend(other.config)
         self.position = (
             self.position

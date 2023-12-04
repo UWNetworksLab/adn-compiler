@@ -5,32 +5,47 @@ from compiler.graph.ir.element import AbsElement
 
 
 def gen_dependency(chain: List[AbsElement], path: str):
-    fields = {"droptrace", "blocktrace"}
+    fields = {"droptrace", "blocktrace", "copytrace"}
     for element in chain:
-        for f in element.prop[path]["read"] + element.prop[path]["write"]:
+        for f in (
+            element.get_prop(path, "read")
+            + element.get_prop(path, "write")
+            + element.get_prop(path, "record")
+        ):
             fields.add(f)
     writer_table = {f: ["INPUT"] for f in fields}
     dep = dict()
     for element in chain:
-        rfields, wfields = element.prop[path]["read"], element.prop[path]["write"]
+        rfields, wfields, rec_fields = (
+            element.get_prop(path, "read"),
+            element.get_prop(path, "write"),
+            element.get_prop(path, "record"),
+        )
+        assert len(set(rfields)) == len(rfields), "duplicate fields"
+        assert len(set(wfields)) == len(wfields), "duplicate fields"
+        assert len(set(rec_fields)) == len(rec_fields), "duplicate fields"
         if rfields == "*":
             rfields = list(fields)
         if wfields == "*":
             wfields = list(fields)
         for f in rfields:
-            dep[(element.deploy_name, f)] = deepcopy(writer_table[f])
+            dep[(element.deploy_name, f, "read")] = deepcopy(writer_table[f])
+        for f in rec_fields:
+            dep[(element.deploy_name, f, "record")] = deepcopy(writer_table[f])
         for f in wfields:
             writer_table[f].append(element.deploy_name)
     for f in fields:
-        dep[("OUTPUT", f)] = deepcopy(writer_table[f])
+        dep[("OUTPUT", f, "read")] = deepcopy(writer_table[f])
     return dep
 
 
 def equivalent(chain: List[AbsElement], new_chain: List[AbsElement], path: str) -> bool:
     server_element = False
     for element in new_chain:
-        if element.position == "S":
+        if element.position == "N":
             server_element = True
+        if element.position == "S" and not server_element:
+            return False
         if element.position == "C" and server_element:
             return False
     dep, new_dep = gen_dependency(chain, path), gen_dependency(new_chain, path)
@@ -42,6 +57,17 @@ class OptimizedLabel(Exception):
 
 
 def reorder(chain: List[AbsElement], path: str) -> List[AbsElement]:
+    # preparation: add some properties for analysis
+    for element in chain:
+        if element.has_prop(path, "record"):
+            element.add_prop(path, "record", ["droptrace", "blocktrace", "copytrace"])
+        if element.has_prop(path, "drop"):
+            element.add_prop(path, "write", "droptrace")
+        if element.has_prop(path, "block"):
+            element.add_prop(path, "write", "blocktrace")
+        if element.has_prop(path, "copy"):
+            element.add_prop(path, "write", "copytrace")
+    # reorder
     optimized = True
     while optimized:
         optimized = False
@@ -98,10 +124,30 @@ def reorder(chain: List[AbsElement], path: str) -> List[AbsElement]:
 
 
 def chain_optimize(
-    chain: List[AbsElement], path: str
+    chain: List[AbsElement],
+    path: str,
+    pseudo_property: bool,
 ) -> Tuple[List[AbsElement], List[AbsElement]]:
+    """Optimize an element chain
+
+    Args:
+        chain: A list of AbsElement
+        path: "request" or "response"
+        pseudo_property: if true, use hand-coded properties for analysis
+
+    Returns:
+        client chain and server chain
+    """
+    for element in chain:
+        element.set_property_source(pseudo_property)
+    # Step 1: Reorder + Migration
     chain = reorder(chain, path)
-    latest = 0
-    while latest < len(chain) and chain[latest].position != "S":
-        latest += 1
-    return chain[:latest], chain[latest:]
+
+    # TODO: Step 2: consolidation
+
+    # split the chain into client + server
+    network_pos = 0
+    while network_pos < len(chain) and chain[network_pos].position != "N":
+        network_pos += 1
+
+    return chain[:network_pos], chain[network_pos + 1 :]

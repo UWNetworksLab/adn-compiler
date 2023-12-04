@@ -1,0 +1,7 @@
+request:
+    drop: True
+    read:
+    - "key"
+response:
+    read:
+    - "*"

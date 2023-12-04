@@ -8,8 +8,5 @@ app_structure:
 
 egress:
     Frontend:
-    -
-        name: "Logging"
-        spec: "examples/match_action/logging.sql"
-        config: []
+    -   name: "logging"
         position: "C"

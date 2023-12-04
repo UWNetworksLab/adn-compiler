@@ -5,11 +5,9 @@ app_structure:
 
 egress:
     rpc_echo_client2:
-    -   name: "Logging"
-        spec: "examples/match_action/logging.adn"
+    -   name: "logging"
         position: "C"
 
 ingress:
     rpc_echo_server:
-    -   name: "Acl"
-        spec: "examples/match_action/acl.adn"
+    -   name: "acl"

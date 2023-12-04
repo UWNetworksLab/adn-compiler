@@ -87,13 +87,11 @@ class GraphIR:
         for pdict in pair:
             edict1 = {
                 "name": "-".join([pdict["name1"], pdict["name2"]]),
-                "spec": pdict["spec"],
                 "config": pdict["config"],
                 "position": "C",
             }
             edict2 = {
                 "name": "-".join([pdict["name2"], pdict["name1"]]),
-                "spec": pdict["spec"],
                 "config": pdict["config"],
                 "position": "S",
             }
@@ -137,18 +135,20 @@ class GraphIR:
         panel_list.append(make_service_rich(self.server))
         return panel_list
 
-    def optimize(self, pseudo: bool):
+    def optimize(self, pseudo_property: bool):
         """Run optimization algorithm on the graphir.
 
         Args:
             pseudo: If true, use the pseodo element compiler to generate element properties.
         """
-        # for chain_name in ["req_client", "res_client", "req_server", "res_server"]:
-        # for element in self.elements[chain_name]:
-        # element.gen_property(pseudo)
         self.elements["req_client"], self.elements["req_server"] = chain_optimize(
-            self.elements["req_client"] + self.elements["req_server"], "request"
+            self.elements["req_client"]
+            + [AbsElement("NETWORK")]
+            + self.elements["req_server"],
+            "request",
+            pseudo_property,
         )
-        # TODO: currently, response chain is copied from request chain.
+        # TODO: currently, we don't consider optimization for the response chain,
+        # so the response chain is copied from request chain.
         self.elements["res_client"] = deepcopy(self.elements["req_client"])
         self.elements["res_server"] = deepcopy(self.elements["res_server"])

@@ -5,31 +5,25 @@ app_structure:
 
 ingress:
     Search:
-    -   name: "Logging"
-        spec: "examples/match_action/logging.adn"
+    -   name: "logging"
         position: "S"
 
 egress:
     Frontend:
-    -   name: "RateLimit"
-        spec: "examples/match_action/ratelimit.adn"
+    -   name: "ratelimit"
         config:
         - "bucket_size = 1000"
         - "requests_per_sec = 1000"
         position: "C"
 
-    -   name: "LoadBalancing"
-        spec: "examples/match_action/lb_random.adn"
+    -   name: "lb_random"
         position: "C"
 
 edge:
     Frontend->Search:
-    -   name: "Cache"
-        spec: "examples/match_action/cache.sql"
+    -   name: "cache"
         position: "C"
 
-    -   name: "Mutation"
-        spec: "examples/match_action/mutation.sql"
+    -   name: "mutation"
 
-    -   name: "HotelAcl"
-        spec: "examples/match_action/hotel-acl.sql"
+    -   name: "hotel_acl"

@@ -25,12 +25,14 @@ class GCParser:
         """
         with open(spec_path, "r") as f:
             spec_dict = yaml.safe_load(f)
+
         for edge in spec_dict["app_structure"]:
             client, server = edge.split("->")
             client, server = client.strip(), server.strip()
             self.services.add(client)
             self.services.add(server)
             self.app_edges.append((client, server))
+
         graphir: Dict[str, GraphIR] = dict()
         for client, server in self.app_edges:
             chain, pair, eid = [], [], f"{client}->{server}"
