@@ -21,6 +21,12 @@ class Property:
         self.write: List[str] = []
         self.copy: bool = False
 
+    def check(self):
+        self.read = list(set(self.read))
+        self.write = list(set(self.write))
+        self.read = [i.strip("'") for i in self.read]
+        self.write = [i.strip("'") for i in self.write]
+
 
 class Edge:
     def __init__(self, u: int, v: int, w: Tuple[Expr, Expr] = []) -> None:

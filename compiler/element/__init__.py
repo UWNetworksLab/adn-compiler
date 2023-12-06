@@ -57,7 +57,8 @@ def compile_element_property(engine_name: str, verbose: bool = False) -> Dict:
 
         req = FlowGraph().analyze(ir.req, verbose)
         resp = FlowGraph().analyze(ir.resp, verbose)
-
+        req.check()
+        resp.check()
         stateful = len(ir.definition.internal) > 0
         return {
             "stateful": stateful,

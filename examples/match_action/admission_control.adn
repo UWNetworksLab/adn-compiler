@@ -1,33 +1,28 @@
+// Reference: https://sre.google/sre-book/handling-overload/
+// Modulo the sliding window
+
 internal {
-	last: int
-	window: int
-	failure: int // timestamp here 
-	total: int
+	// Agression. Increasing the multiplier will make throttling less aggressive
+	multiplier: float
+	accepts: int 
+	requests: int
 }
 
-fn init(window) {
-	window := 5;
+fn init(multiplier) {
+	multiplier := 2
 }
 
 fn req(rpc_req) {
-	now := current_time();
-	match(now - last > window) {
+	total := total + 1;
+
+	prob := max(0, (requests - multiplier * accepts) / (requests + 1))
+
+	match(randomf(0,1) < prob) {
 		true => {
-			failure := 0;
-			total := 0;
-			last := now;
-		}
-		false => {
-			// do nothing
-		}
-	}; 
-	match(failure > 0.5 * total) {
-		true => {
-			send(err('admission_control'), APP);
-		}
-		false => {
-			total := total + 1;
 			send(rpc_req, NET);
+		}
+		false => {
+			send(err('admission control'), APP);
 		}
 	};
 }
@@ -35,11 +30,8 @@ fn req(rpc_req) {
 fn resp(rpc_resp) {
 	match(rpc_resp) {
 		Some(rpc_resp) => {
+			success = success + 1;
 			send(rpc_resp, APP);
-		}
-		Some(err(msg)) => {
-			failure := failure + 1;
-			send(err(msg), APP);
 		}
 	};
 }

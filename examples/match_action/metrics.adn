@@ -1,19 +1,19 @@
 internal 
 {
-	record: Map<int, int>
-  latency: Vec<int>
+	record: Map<string, Instant>
+  latency: Vec<float>
 }
 
 fn init() {
 }
 
 fn req(rpc_req) {
-	record.set(rpc_req.get('meta_id'), current_time());
+	record.set(rpc_req.get('name'), current_time());
 	send(rpc_req, NET);
 }
 
 fn resp(rpc_resp) {
-  rpc_id := rpc_resp.get('meta_id');
-  lat := current_time() - record.get(rpc_id);
+  rpc_name := rpc_resp.get('name');
+  lat := time_diff(current_time(), record.get(rpc_name));
   latency.set(latency.size(), lat);
 }

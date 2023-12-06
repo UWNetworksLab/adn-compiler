@@ -96,21 +96,18 @@ def gen_template(
     template_name_first_cap,
     template_name_all_cap,
 ):
-    # target_dir = os.path.join(COMPILER_ROOT, f"generated/{template_name}")
-    # os.system(f"rm -rf {target_dir}")
-    # os.system(f"mkdir -p {target_dir}")
-    # os.chdir(target_dir)
     api_dir = os.path.join(output_dir, f"api/{template_name}")
     api_dir_src = os.path.join(api_dir, "src")
     plugin_dir = os.path.join(output_dir, f"plugin/{template_name}")
     plugin_dir_src = os.path.join(plugin_dir, "src")
+    toml_dir = os.path.join(output_dir, f"toml/{template_name}")
     os.system(f"mkdir -p {api_dir_src}")
     os.system(f"mkdir -p {plugin_dir_src}")
+    os.system(f"mkdir -p {toml_dir}")
     ctx["TemplateName"] = template_name
     ctx["TemplateNameFirstCap"] = template_name_first_cap
     ctx["TemplateNameAllCap"] = template_name_all_cap
     ctx["TemplateNameCap"] = template_name_first_cap
-    # print("Current dir: {}".format(os.getcwd()))
     config_path = os.path.join(plugin_dir_src, "config.rs")
     lib_path = os.path.join(plugin_dir_src, "lib.rs")
     module_path = os.path.join(plugin_dir_src, "module.rs")
@@ -142,6 +139,16 @@ def gen_template(
         f.write(api_lib_rs)
     with open(os.path.join(api_dir, "Cargo.toml"), "w") as f:
         f.write(api_toml.format(TemplateName=template_name_toml))
+
+    gen_attach_detach(
+        toml_dir,
+        {
+            "Me": template_name_first_cap,
+            "Prev": "Mrpc",
+            "Next": "TcpRpcAdapter",
+            "Group": '["MrpcEngine", "TcpRpcAdapterEngine"]',
+        },
+    )
 
     os.system(f"rustfmt --edition 2018  {config_path}")
     os.system(f"rustfmt --edition 2018  {lib_path}")
@@ -187,3 +194,11 @@ def finalize(name: str, ctx: RustContext, output_dir: str, placement: str):
         template_name_first_cap,
         template_name_all_cap,
     )
+
+
+def gen_attach_detach(name: str, ctx):
+    with open(f"{name}/attach.toml", "w") as f:
+        f.write(attach_toml.format(**ctx))
+
+    with open(f"{name}/detach.toml", "w") as f:
+        f.write(detach_toml.format(**ctx))

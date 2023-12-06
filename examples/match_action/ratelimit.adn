@@ -1,5 +1,5 @@
 internal {
-	last: int
+	last: Instant
 	limit: int
 	token: int
 	per_sec: float
@@ -13,7 +13,7 @@ fn init() {
 }
 
 fn req(rpc_req) {
-	token := min(limit, per_sec * (current_time() - last));
+	token := min(limit, per_sec * time_diff(current_time(), last));
 	last := current_time();
     match (token > 1) {
 		true => {

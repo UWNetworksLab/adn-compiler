@@ -33,9 +33,11 @@ def move_template(phoenix_dir, template_name):
     original_api = phoenix_dir + "/experimental/mrpc/phoenix-api/policy"
     mrpc_plugin = phoenix_dir + "/experimental/mrpc/generated/plugin"
     mrpc_api = phoenix_dir + "/experimental/mrpc/generated/api"
+    mrpc_toml = phoenix_dir + "/experimental/mrpc/generated/toml"
 
     prefix_api = str(COMPILER_ROOT) + "/generated/api/" + template_name
     prefix_plugin = str(COMPILER_ROOT) + "/generated/plugin/" + template_name
+    prefix_toml = str(COMPILER_ROOT) + "/generated/toml/" + template_name
 
     os.system(f"mkdir -p {mrpc_api}")
     os.system(f"rm -rf {mrpc_api}/{template_name}")
@@ -60,6 +62,10 @@ def move_template(phoenix_dir, template_name):
     os.system(
         f"cp {prefix_plugin}/src/proto.rs {mrpc_plugin}/{template_name}/src/proto.rs"
     )
+
+    os.system(f"mkdir -p {mrpc_toml}")
+    os.system(f"rm -rf {mrpc_toml}/{template_name}")
+    os.system(f"cp -r {prefix_toml} {mrpc_toml}/{template_name}")
 
     LOG.info("Template {} moved to mrpc folder".format(template_name))
 
@@ -116,16 +122,16 @@ def install(engine_name: List[str], phoenix_dir: str):
 
     os.chdir(f"{phoenix_dir}/experimental/mrpc")
     for e in engines:
-        print("Compiling mRPC Plugin: ", e)
+        LOG.info(f"Compiling mRPC Plugin: {e}")
         res = subprocess.run(
             ["cargo", "make", "build-mrpc-plugin-single", e], capture_output=True
         )
         if res.returncode != 0:
-            LOG.error("Error on compiling mRPC Plugin: ", res)
+            LOG.error(f"Error on compiling mRPC Plugin: {res}")
             exit(1)
         # os.system(f"cargo make build-mrpc-plugin-single {e}")
 
-    print("Installing mRPC Plugin...")
+    LOG.info("Installing mRPC Plugin...")
     res = subprocess.run(["cargo", "make", "deploy-plugins"], capture_output=True)
     if res.returncode != 0:
         LOG.error("Error on installing mRPC Plugin")

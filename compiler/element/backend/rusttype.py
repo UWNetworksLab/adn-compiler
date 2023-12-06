@@ -175,17 +175,23 @@ RustGlobalFunctions = {
         RustBasicType("f32"),
         "pub fn Gen_time_difference(a: Instant, b: Instant) -> f32 {(a - b).as_secs_f64() as f32}",
     ),
-    "random_f64": RustFunctionType(
-        "Gen_random_f64",
-        [],
-        RustBasicType("f64"),
-        "pub fn Gen_random_f64(l: f64, r: f64) -> f64 { rand::random::<f64>() }",
+    "random_f32": RustFunctionType(
+        "Gen_random_f32",
+        [RustBasicType("f32"), RustBasicType("f32")],
+        RustBasicType("f32"),
+        "pub fn Gen_random_f32(l: f32, r: f32) -> f32 { rand::random::<f32>() }",
     ),
     "min_u64": RustFunctionType(
         "Gen_min_u64",
         [RustBasicType("u64"), RustBasicType("u64")],
         RustBasicType("u64"),
         "pub fn Gen_min_u64(a: u64, b: u64) -> u64 { a.min(b) }",
+    ),
+    "min_f64": RustFunctionType(
+        "Gen_min_f64",
+        [RustBasicType("f64"), RustBasicType("f64")],
+        RustBasicType("f64"),
+        "pub fn Gen_min_f64(a: f64, b: f64) -> f64 { a.min(b) }",
     ),
 }
 

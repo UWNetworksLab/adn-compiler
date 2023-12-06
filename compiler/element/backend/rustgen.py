@@ -12,11 +12,13 @@ FUNC_INIT = "init"
 
 def map_basic_type(name: str) -> RustType:
     if name == "float":
-        return RustBasicType("f64")
+        return RustBasicType("f32")
     elif name == "int":
         return RustBasicType("i32")
     elif name == "string":
         return RustBasicType("String")
+    elif name == "Instant":
+        return RustBasicType("Instant")
     else:
         LOG.warning(f"unknown type: {name}")
         return RustType(name)
@@ -83,13 +85,15 @@ class RustContext:
     def func_mapping(self, fname: str) -> RustFunctionType:
         match fname:
             case "randomf":
-                return RustGlobalFunctions["random_f64"]
+                return RustGlobalFunctions["random_f32"]
             case "update_window":
                 return RustGlobalFunctions["update_window"]
             case "current_time":
                 return RustGlobalFunctions["current_time"]
             case "min":
-                return RustGlobalFunctions["min_u64"]
+                return RustGlobalFunctions["min_f64"]
+            case "time_diff":
+                return RustGlobalFunctions["time_diff"]
             case _:
                 LOG.error(f"unknown global function: {fname} in func_mapping")
                 raise Exception("unknown global function:", fname)
@@ -210,13 +214,14 @@ class RustGenerator(Visitor):
             if ctx.find_var(name) == None:
                 ctx.declare(name, RustType("unknown"), True)  # declar temp
                 lhs = "let mut " + name
+                return f"{lhs} = {value};\n"
             else:
                 var = ctx.find_var(name)
                 if var.temp or var.rpc:
                     lhs = name
                 else:
                     lhs = "self." + name
-            return f"{lhs} = {value};\n"
+                return f"{lhs} = ({value}) as {var.type.name};\n"
         else:
             raise Exception("unknown function")
 
@@ -224,7 +229,7 @@ class RustGenerator(Visitor):
         return node.value.accept(self, ctx)
 
     def visitExpr(self, node: Expr, ctx):
-        return f"{node.lhs.accept(self, ctx)} {node.op.accept(self, ctx)} {node.rhs.accept(self, ctx)}"
+        return f"({node.lhs.accept(self, ctx)} {node.op.accept(self, ctx)} {node.rhs.accept(self, ctx)})"
 
     def visitOperator(self, node: Operator, ctx):
         match node:
@@ -284,8 +289,11 @@ class RustGenerator(Visitor):
     def visitFuncCall(self, node: FuncCall, ctx) -> str:
         fn_name = node.name.name
         fn: RustFunctionType = ctx.func_mapping(fn_name)
-
-        args = [f"({i.accept(self, ctx)}).into()" for i in node.args if i is not None]
+        LOG.info(f"func_call: {fn_name} {fn}")
+        types = fn.args
+        args = [f"{i.accept(self, ctx)}" for i in node.args if i is not None]
+        for idx, ty in enumerate(types):
+            args[idx] = f"({args[idx]} as {ty.name})"
         ret = fn.gen_call(args)
 
         return ret
@@ -344,7 +352,7 @@ class RustGenerator(Visitor):
             # handle drop
             if self.placement == "client":
                 msg = node.msg.accept(self, ctx)
-                inner = f"let inner_gen = {msg}"
+                inner = f"let inner_gen = {msg};"
                 if ctx.current_func == FUNC_REQ:
                     if node.direction == "NET":
                         return f"{inner}self.tx_outputs()[0].send(inner_gen)?"
