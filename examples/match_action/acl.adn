@@ -4,8 +4,10 @@ internal
 }
 
 fn init() {
-	acl.set('Apple', 'Yes');
-	acl.set('Banana', 'No');
+	acl.set('apple', 'Yes');
+	acl.set('banana', 'No');
+	acl.set('orange', 'No');
+	acl.set('orang', 'Yes');
 }
 
 fn req(rpc_req) {
