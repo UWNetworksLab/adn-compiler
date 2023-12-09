@@ -58,7 +58,7 @@ class GraphIR:
         # principle:
         # - valid ("C" goes to client, "S" goes to server)
         # - balanced #element on c/s sides
-        c_id, s_id = 0, len(chain)
+        c_id, s_id = -1, len(chain)
         for i, element in enumerate(chain):
             if element["position"] == "C":
                 c_id = max(c_id, i)
