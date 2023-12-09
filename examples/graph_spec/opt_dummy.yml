@@ -1,10 +1,10 @@
 app_name: "rpc_echo_local"
 
 app_structure:
-    - "rpc_echo_client2->rpc_echo_server"
+    - "rpc_echo_frontend->rpc_echo_server"
 
 egress:
-    rpc_echo_client2:
+    rpc_echo_frontend:
     -   name: "logging"
         position: "C"
 
