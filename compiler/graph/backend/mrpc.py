@@ -52,7 +52,10 @@ config_string = \'\'\'
 
 service_pos_dict = {
     "hotel": {},
-    "rpc_echo_local": {"rpc_echo_client2": "localhost", "rpc_echo_server": "localhost"},
+    "rpc_echo_local": {
+        "rpc_echo_frontend": "localhost",
+        "rpc_echo_server": "localhost",
+    },
 }
 
 # TODO: automaticlaly detect sid
@@ -65,8 +68,8 @@ sids = {
         ("Search", "Rate", "client"): "4",
     },
     "rpc_echo_local": {
-        ("rpc_echo_client2", "rpc_echo_server", "client"): "1",
-        ("rpc_echo_client2", "rpc_echo_server", "server"): "1",
+        ("rpc_echo_frontend", "rpc_echo_server", "client"): "1",
+        ("rpc_echo_frontend", "rpc_echo_server", "server"): "1",
     },
 }
 
@@ -224,7 +227,7 @@ def gen_install(elements: List[AbsElement], service: str, host: str):
             f"{graph_base_dir}/gen/{lname}_mrpc/plugin/{lname}",
             f"{container_gen_dir}/plugin/{lname}",
         )
-    # # Compile & deploy engines.
+    # Compile & deploy engines.
     execute_remote_container(
         service,
         host,

@@ -37,7 +37,7 @@ class AbsElement:
         names = []
         for name in self.name:
             names.append("".join(map(lambda s: s.capitalize(), name.split("_"))))
-        return "".join(self.name)
+        return "".join(names)
 
     @property
     def lib_name(self) -> str:

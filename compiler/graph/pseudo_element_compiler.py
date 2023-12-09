@@ -42,7 +42,7 @@ def pseudo_gen_property(element) -> Dict[str, Dict[str, Any]]:
     return property
 
 
-def pseudo_compile(spec: str, gen_dir: str, backend: str):
+def pseudo_compile(ename: str, gen_dir: str, backend: str):
     """Generate element implementation by copying existing source code to the target path.
 
     Args:
@@ -51,7 +51,6 @@ def pseudo_compile(spec: str, gen_dir: str, backend: str):
         backend: Backend name.
     """
     assert backend in ["mrpc"], f"backend {backend} not supported"
-    ename = spec.split("/")[-1].split(".")[0]
     assert ename in support_list, f"element {ename} not supported"
 
     if backend == "mrpc":

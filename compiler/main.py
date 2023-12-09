@@ -24,47 +24,52 @@ console = Console()
 gir_summary = dict()
 
 
-def compile_impl(spec: str, gen_dir: str, backend: str):
-    engine_name = spec.split("/")[-1].split(".")[0]
+def compile_impl(engine_name: str, gen_dir: str, backend: str, placement: str):
     gen_dir = os.path.join(gen_dir, f"{engine_name}_{backend}")
     os.system(f"mkdir -p {gen_dir}")
-    gen_code(engine_name, engine_name, gen_dir, backend, "server")
+    gen_code(engine_name, engine_name, gen_dir, backend, placement)
 
 
 def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
-    compiled_spec = set()
+    compiled_name = set()
     for gir in graphirs.values():  # For each edge in the application
-        for element in gir.elements["req_client"] + gir.elements["req_server"]:
+        elist = [(e, "client") for e in gir.elements["req_client"]] + [
+            (e, "server") for e in gir.elements["req_server"]
+        ]
+        for (element, placement) in elist:
             # For each element in the edge
-            for spec in element.spec:
-                if spec not in compiled_spec:
+            for name in element.name:
+                if name not in compiled_name:
                     if pseudo_impl:
                         pseudo_compile(
-                            spec, os.path.join(graph_base_dir, "gen"), args.backend
+                            name, os.path.join(graph_base_dir, "gen"), args.backend
                         )
                     else:
                         compile_impl(
-                            spec, os.path.join(graph_base_dir, "gen"), args.backend
+                            name,
+                            os.path.join(graph_base_dir, "gen"),
+                            args.backend,
+                            placement,
                         )
-                compiled_spec.add(spec)
+                compiled_name.add(name)
 
 
 def print_gir_summary(graphirs: Dict[str, GraphIR]):
     IR_LOG.info("GraphIR summary:")
     for gir in graphirs.values():
         gir_summary[gir.name]["post-optimized"] = gir.to_rich()
-        gir_summary[gir.name]["property"] = {}
-        for element in gir.elements["req_client"] + gir.elements["req_server"]:
-            gir_summary[gir.name]["property"][element.deploy_name] = element.prop
+        # gir_summary[gir.name]["property"] = {}
+        # for element in gir.elements["req_client"] + gir.elements["req_server"]:
+        # gir_summary[gir.name]["property"][element.deploy_name] = element.prop
     for gname, summary in gir_summary.items():
         console.print()
         console.print(gname, style="underline bold italic")
         console.print(Columns(["\n :snail: :\n"] + summary["pre-optimized"]))
         console.print(Columns(["\n :rocket: :\n"] + summary["post-optimized"]))
-        if args.debug:
-            console.print("Properties:")
-            for ename, prop in summary["property"].items():
-                console.print(f"{ename}: {prop['request']}")
+        # if args.debug:
+        # console.print("Properties:")
+        # for ename, prop in summary["property"].items():
+        # console.print(f"{ename}: {prop['request']}")
 
 
 def main(args):
@@ -81,13 +86,14 @@ def main(args):
             gir_summary[gir.name]["pre-optimized"] = gir.to_rich()
 
     # Step 2: Property Generation & Optimization
-    for gir in graphirs.values():
-        # each gir is an edge
-        # if args.pseudo_property == True:
-        #     the graph compiler uses hand-coded properties
-        # else:
-        #     the graph compiler calls the element compiler to generate properties
-        gir.optimize(args.pseudo_property)
+    if not args.no_optimize:
+        for gir in graphirs.values():
+            # each gir is an edge
+            # if args.pseudo_property == True:
+            #     the graph compiler uses hand-coded properties
+            # else:
+            #     the graph compiler calls the element compiler to generate properties
+            gir.optimize(args.pseudo_property)
 
     if not args.dry_run:
         # args.dry_run == False => Generate and run backend-specific scripts & commands
@@ -148,6 +154,12 @@ if __name__ == "__main__":
         "--dry_run",
         help="If added, the compilation terminates after optimization (i.e., no backend scriptgen)",
         action="store_true",
+    )
+    parser.add_argument(
+        "--no_optimize",
+        help="If added, no optimization will be applied to GraphIR",
+        action="store_true",
+        default=False,
     )
     parser.add_argument("--debug", help="Print debug info", action="store_true")
     args = parser.parse_args()
