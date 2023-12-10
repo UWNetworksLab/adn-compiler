@@ -51,8 +51,7 @@ class CopyAnalyzer(Visitor):
     def visitMatch(self, node: Match, ctx):
         for (p, s) in node.actions:
             for st in s:
-                ret = st.accept(self, ctx) or ret
-        return ret
+                st.accept(self, ctx)
 
     def visitAssign(self, node: Assign, ctx):
         pass
@@ -302,6 +301,13 @@ class DropAnalyzer(Visitor):
             return node.stmt.accept(self, ctx)
 
     def visitMatch(self, node: Match, ctx) -> bool:
+        for a in node.actions:
+            for st in a[1]:
+                if isinstance(st, Send):
+                    if isinstance(st.msg, Error):
+                        return True
+        return False
+        # todo! fixme
         raise Exception("Unreachable! Match should not appear in drop analyzer")
 
     def visitAssign(self, node: Assign, ctx) -> bool:

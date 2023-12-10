@@ -4,18 +4,20 @@
 internal {
 	// Agression. Increasing the multiplier will make throttling less aggressive
 	multiplier: float
-	accepts: int 
-	requests: int
+	success: float 
+	total: float
 }
 
 fn init(multiplier) {
-	multiplier := 2
+	multiplier := 0.5;
+	success := 0.0;
+	total := 0.0;
 }
 
 fn req(rpc_req) {
-	total := total + 1;
+	total := total + 1.0;
 
-	prob := max(0, (requests - multiplier * accepts) / (requests + 1))
+	prob := (total - (multiplier * success)) / (total + 1.0);
 
 	match(randomf(0,1) < prob) {
 		true => {
@@ -28,9 +30,12 @@ fn req(rpc_req) {
 }
 
 fn resp(rpc_resp) {
-	match(rpc_resp) {
-		Some(rpc_resp) => {
-			success = success + 1;
+	match(rpc_resp.get('meta_status') == 'success') {
+		true => {
+			success := success + 1.0;
+			send(rpc_resp, APP);
+		}
+		false => {
 			send(rpc_resp, APP);
 		}
 	};

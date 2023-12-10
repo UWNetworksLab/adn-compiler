@@ -60,7 +60,7 @@ class RustVecType(RustType):
 
     def gen_get(self, args: List[str]) -> str:
         assert len(args) == 1
-        return f".get({args[0]}).unwrap()"
+        return f".get({args[0]})"
 
     def gen_set(self, args: List[str]) -> str:
         assert len(args) == 2
@@ -89,7 +89,7 @@ class RustMapType(RustType):
 
     def gen_get(self, args: List[str]) -> str:
         assert len(args) == 1
-        return f".get(&{args[0]}).unwrap()"
+        return f".get(&{args[0]})"
 
     def gen_set(self, args: List[str]) -> str:
         assert len(args) == 2
@@ -157,6 +157,30 @@ class RustVariable:
 
 
 RustGlobalFunctions = {
+    "encrypt": RustFunctionType(
+        "Gen_encrypt",
+        [RustType("&str"), RustType("&str")],
+        RustBasicType("String"),
+        """pub fn Gen_encrypt(a: &str, b: &str) -> String {
+            let mut ret = String::new();
+            for (x, y) in a.bytes().zip(b.bytes()) {
+                ret.push((x ^ y) as char);
+            }
+            ret
+        }""",
+    ),
+    "decrypt": RustFunctionType(
+        "Gen_decrypt",
+        [RustType("&str"), RustType("&str")],
+        RustBasicType("String"),
+        """pub fn Gen_decrypt(a: &str, b: &str) -> String {
+            let mut ret = String::new();
+            for (x, y) in a.bytes().zip(b.bytes()) {
+                ret.push((x ^ y) as char);
+            }
+            ret
+    }""",
+    ),
     "update_window": RustFunctionType(
         "Gen_update_window",
         [RustBasicType("u64"), RustBasicType("u64")],
@@ -192,6 +216,40 @@ RustGlobalFunctions = {
         [RustBasicType("f64"), RustBasicType("f64")],
         RustBasicType("f64"),
         "pub fn Gen_min_f64(a: f64, b: f64) -> f64 { a.min(b) }",
+    ),
+    "meta_id_readonly_tx": RustFunctionType(
+        "meta_id_readonly_tx",
+        [RustType("&RpcMessageTx")],
+        RustBasicType("u64"),
+        "pub fn meta_id_readonly_tx() -> u64 { 0 }",
+    ),
+    "meta_id_readonly_rx": RustFunctionType(
+        "meta_id_readonly_rx",
+        [RustType("&RpcMessageRx")],
+        RustBasicType("u64"),
+        "pub fn meta_id_readonly_rx() -> u64 { 0 }",
+    ),
+    "meta_status_readonly_tx": RustFunctionType(
+        "meta_status_readonly_tx",
+        [RustType("&RpcMessageTx")],
+        RustBasicType("String"),
+        """pub fn meta_status_readonly_tx() -> &'static str {
+            "success"
+        }""",
+    ),
+    "meta_status_readonly_rx": RustFunctionType(
+        "meta_status_readonly_rx",
+        [RustType("&RpcMessageRx")],
+        RustBasicType("String"),
+        """pub fn meta_status_readonly_rx(msg: &RpcMessageRx) -> &'static str {
+            let meta: &phoenix_api::rpc::MessageMeta = unsafe { &*msg.meta.as_ptr() };
+            if meta.status_code == StatusCode::Success {
+                "success"
+            } else {
+                "failure"
+            }
+        }
+        """,
     ),
 }
 

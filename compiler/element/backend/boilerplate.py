@@ -92,7 +92,7 @@ pub fn init_addon(config_string: Option<&str>) -> InitFnResult<Box<dyn PhoenixAd
 module_sender_rs = """
 use anyhow::{{bail, Result}};
 use nix::unistd::Pid;
-
+use phoenix_api::rpc::{{RpcId, StatusCode, TransportStatus}};
 use phoenix_common::addon::{{PhoenixAddon, Version}};
 use phoenix_common::engine::datapath::DataPathNode;
 use phoenix_common::engine::{{Engine, EngineType}};
@@ -199,7 +199,7 @@ impl PhoenixAddon for {TemplateNameFirstCap}Addon {{
 module_receiver_rs = """
 use anyhow::{{bail, Result}};
 use nix::unistd::Pid;
-
+use phoenix_api::rpc::{{RpcId, StatusCode, TransportStatus}};
 use phoenix_common::engine::datapath::meta_pool::MetaBufferPool;
 use phoenix_common::addon::{{PhoenixAddon, Version}};
 use phoenix_common::engine::datapath::DataPathNode;
@@ -310,13 +310,14 @@ impl PhoenixAddon for {TemplateNameFirstCap}Addon {{
 engine_sender_rs = """
 use anyhow::{{anyhow, Result}};
 use futures::future::BoxFuture;
-use phoenix_api::rpc::{{RpcId, TransportStatus}};
+use phoenix_api::rpc::{{RpcId, StatusCode, TransportStatus}};
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::os::unix::ucred::UCred;
 use std::pin::Pin;
+use std::ptr::Unique;
 
 use phoenix_api_policy_{TemplateName}::control_plane;
 
@@ -333,8 +334,7 @@ use phoenix_common::log;
 use phoenix_common::module::Version;
 
 use phoenix_common::storage::{{ResourceCollection, SharedStorage}};
-use phoenix_common::engine::datapath::RpcMessageTx;
-
+use phoenix_common::engine::datapath::{{RpcMessageTx, RpcMessageRx}};
 use super::DatapathError;
 use crate::config::{{create_log_file, {TemplateNameCap}Config}};
 
@@ -455,15 +455,29 @@ impl {TemplateNameCap}Engine {{
 }}
 
 #[inline]
-fn materialize_nocopy(msg: &RpcMessageTx) -> &{ProtoRpcRequestType} {{
+fn materialize_nocopy_tx(msg: &RpcMessageTx) -> &{ProtoRpcRequestType} {{
     let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
     let req = unsafe {{ req_ptr.as_ref().unwrap() }};
     return req;
 }}
 
 #[inline]
-fn materialize_nocopy_mutable(msg: &RpcMessageTx) -> &mut {ProtoRpcRequestType} {{
+fn materialize_nocopy_mutable_tx(msg: &RpcMessageTx) -> &mut {ProtoRpcRequestType} {{
     let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
+    let req = unsafe {{ req_ptr.as_mut().unwrap() }};
+    return req;
+}}
+
+#[inline]
+fn materialize_nocopy_rx(msg: &RpcMessageRx) -> &{ProtoRpcRequestType} {{
+    let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
+    let req = unsafe {{ req_ptr.as_ref().unwrap() }};
+    return req;
+}}
+
+#[inline]
+fn materialize_nocopy_mutable_rx(msg: &RpcMessageRx) -> &mut {ProtoRpcRequestType} {{
+    let mut req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
     let req = unsafe {{ req_ptr.as_mut().unwrap() }};
     return req;
 }}
@@ -476,8 +490,8 @@ impl {TemplateNameCap}Engine {{
             Ok(msg) => {{
                 match msg {{
                     EngineTxMessage::RpcMessage(msg) => {{
-                        let rpc_req = materialize_nocopy(&msg);
-                        let rpc_req_mut = materialize_nocopy_mutable(&msg);
+                        let rpc_req = materialize_nocopy_tx(&msg);
+                        let rpc_req_mut = materialize_nocopy_mutable_tx(&msg);
                         {RpcRequest}
                     }}
                     m => self.tx_outputs()[0].send(m)?,
@@ -497,8 +511,9 @@ impl {TemplateNameCap}Engine {{
                         self.rx_outputs()[0].send(EngineRxMessage::Ack(rpc_id, status))?;
                     }}
                     EngineRxMessage::RpcMessage(msg) => {{
+                        let rpc_resp = materialize_nocopy_rx(&msg);
+                        let rpc_resp_mut = materialize_nocopy_mutable_rx(&msg);
                         {RpcResponse}
-                        self.rx_outputs()[0].send(EngineRxMessage::RpcMessage(msg))?;
                     }}
                     m => self.rx_outputs()[0].send(m)?,
                 }}
@@ -517,13 +532,13 @@ impl {TemplateNameCap}Engine {{
 engine_receiver_rs = """
 use anyhow::{{anyhow, Result}};
 use futures::future::BoxFuture;
-use phoenix_api::rpc::{{RpcId, TransportStatus}};
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::os::unix::ucred::UCred;
 use std::pin::Pin;
+use std::ptr::Unique;
 
 use phoenix_api_policy_{TemplateName}::control_plane;
 
@@ -531,7 +546,7 @@ use phoenix_api_policy_{TemplateName}::control_plane;
 use phoenix_common::engine::datapath::message::{{
     EngineRxMessage, EngineTxMessage, RpcMessageGeneral,
 }};
-use phoenix_api::rpc::{{StatusCode}};
+use phoenix_api::rpc::{{RpcId, StatusCode, TransportStatus}};
 use phoenix_common::engine::datapath::meta_pool::MetaBufferPool;
 use phoenix_common::engine::datapath::node::DataPathNode;
 use phoenix_common::engine::{{future, Decompose, Engine, EngineResult, Indicator, Vertex}};
@@ -671,18 +686,33 @@ impl {TemplateNameCap}Engine {{
 }}
 
 #[inline]
-fn materialize_nocopy(msg: &RpcMessageRx) -> &{ProtoRpcRequestType} {{
+fn materialize_nocopy_tx(msg: &RpcMessageTx) -> &{ProtoRpcRequestType} {{
     let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
     let req = unsafe {{ req_ptr.as_ref().unwrap() }};
     return req;
 }}
 
 #[inline]
-fn materialize_nocopy_mutable(msg: &RpcMessageRx) -> &mut {ProtoRpcRequestType} {{
+fn materialize_nocopy_mutable_tx(msg: &RpcMessageTx) -> &mut {ProtoRpcRequestType} {{
     let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
     let req = unsafe {{ req_ptr.as_mut().unwrap() }};
     return req;
 }}
+
+#[inline]
+fn materialize_nocopy_rx(msg: &RpcMessageRx) -> &{ProtoRpcRequestType} {{
+    let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
+    let req = unsafe {{ req_ptr.as_ref().unwrap() }};
+    return req;
+}}
+
+#[inline]
+fn materialize_nocopy_mutable_rx(msg: &RpcMessageRx) -> &mut {ProtoRpcRequestType} {{
+    let req_ptr = msg.addr_backend as *mut {ProtoRpcRequestType};
+    let req = unsafe {{ req_ptr.as_mut().unwrap() }};
+    return req;
+}}
+
 
 impl {TemplateNameCap}Engine {{
     fn check_input_queue(&mut self) -> Result<Status, DatapathError> {{
@@ -690,8 +720,14 @@ impl {TemplateNameCap}Engine {{
 
           match self.tx_inputs()[0].try_recv() {{
             Ok(msg) => {{
-                self.tx_outputs()[0].send(msg)?;
-                {RpcResponse}
+                match msg {{
+                    EngineTxMessage::RpcMessage(msg) => {{
+                        let rpc_resp = materialize_nocopy_tx(&msg);
+                        let rpc_resp_mut = materialize_nocopy_mutable_tx(&msg);
+                        {RpcResponse}
+                    }}
+                    m => self.tx_outputs()[0].send(m)?,
+                }}
                 return Ok(Progress(1));
             }}
             Err(TryRecvError::Empty) => {{}}
@@ -708,8 +744,8 @@ impl {TemplateNameCap}Engine {{
                         }}
                     }}
                     EngineRxMessage::RpcMessage(msg) => {{
-                        let rpc_req = materialize_nocopy(&msg);
-                        let rpc_req_mut = materialize_nocopy_mutable(&msg);
+                        let rpc_req = materialize_nocopy_rx(&msg);
+                        let rpc_req_mut = materialize_nocopy_mutable_rx(&msg);
                         {RpcRequest}
                     }}
                     EngineRxMessage::RecvError(_, _) => {{

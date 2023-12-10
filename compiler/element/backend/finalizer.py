@@ -63,7 +63,7 @@ def retrieve_info(ctx: RustContext):
         ),
         "RpcRequest": "".join(ctx.req_code),
         # !todo resp
-        "RpcResponse": "",  # "".join(ctx.resp_code),
+        "RpcResponse": "".join(ctx.resp_code),
     }
 
     return info

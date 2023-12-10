@@ -11,12 +11,20 @@ fn init() {
 }
 
 fn req(rpc_req) {
-	match (acl.get(rpc_req.get('name')) == 'Yes') {
-		true => {
-			send(rpc_req, NET);
+	match (acl.get(rpc_req.get('name'))) {
+		Some(permission) => {
+			match (permission) {
+				'Yes' => {
+					send(rpc_req, NET);
+				}
+				'No' => {
+					send(err('acl'), APP);
+				}
+				_ => {
+				}
+			};
 		}
-		// default includes none or “no”
-		false => {
+		None => {
 			send(err('acl'), APP);
 		}
 	}; 

@@ -62,8 +62,9 @@ class Assign(Statement):
 
 
 class Pattern(Node):
-    def __init__(self, value: Union[Identifier, Literal, Error]):
+    def __init__(self, value: Union[Identifier, Literal, Error], some: bool):
         self.value = value
+        self.some = some
 
 
 class Expr(Node):
