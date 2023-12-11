@@ -37,7 +37,7 @@ pattern: const
         | "Some" "(" (identifier | err) ")" -> some_pattern
 
 
-expr: identifier | method | func | const | expr op expr | "(" expr ")"
+expr:  "(" expr ")" | identifier | method | func | const | expr op expr
 
 method: identifier "." (get | set_ | delete | len_ | size)
 
@@ -53,10 +53,10 @@ delete: "delete" "(" expr ")"
 len_: "len()"
 size: "size()"
 
-op: "+" -> op_add
-       | "-" -> op_sub
-       | "*" -> op_mul
+op: "*" -> op_mul
        | "/" -> op_div
+       | "+" -> op_add
+       | "-" -> op_sub
        | "&&" -> op_land
        | "||" -> op_lor
        | "==" -> op_eq
