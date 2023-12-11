@@ -14,6 +14,13 @@ fn req(rpc_req) {
 
 fn resp(rpc_resp) {
   rpc_name := rpc_resp.get('name');
-  lat := time_diff(current_time(), record.get(rpc_name));
-  latency.set(latency.size(), lat);
+  match(record.get(rpc_name)) {
+    Some(t) => {
+      lat := time_diff(current_time(), t);
+      latency.set(latency.size(), lat);
+    }
+    None => {
+    }
+  };
+  send(rpc_resp, APP);
 }

@@ -115,6 +115,8 @@ class RustContext:
                 return RustGlobalFunctions["min_f64"]
             case "time_diff":
                 return RustGlobalFunctions["time_diff"]
+            case "time_diff_ref":
+                return RustGlobalFunctions["time_diff_ref"]
             case "encrypt":
                 return RustGlobalFunctions["encrypt"]
             case "decrypt":
@@ -343,6 +345,8 @@ class RustGenerator(Visitor):
         for idx, ty in enumerate(types):
             if ty.name == "&str":
                 args[idx] = f"&{args[idx]}"
+            elif ty.name == "Instant":
+                args[idx] = f"{args[idx]}.clone()"
             else:
                 args[idx] = f"({args[idx]} as {ty.name})"
         ret = fn.gen_call(args)
