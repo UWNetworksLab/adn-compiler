@@ -56,9 +56,13 @@ service_pos_dict = {
         "rpc_echo_frontend": "localhost",
         "rpc_echo_server": "localhost",
     },
+    "rpc_echo_bench": {
+        "rpc_echo_frontend": "rpc-echo-server.c.app-defined-networks.internal",
+        "rpc_echo_server": "rpc-echo-server.c.app-defined-networks.internal",
+    },
 }
 
-# TODO: automaticlaly detect sid
+# TODO: automatically detect sid
 sids = {
     "hotel": {
         ("Frontend", "Profile", "client"): "2",
@@ -68,6 +72,10 @@ sids = {
         ("Search", "Rate", "client"): "4",
     },
     "rpc_echo_local": {
+        ("rpc_echo_frontend", "rpc_echo_server", "client"): "1",
+        ("rpc_echo_frontend", "rpc_echo_server", "server"): "1",
+    },
+    "rpc_echo_bench": {
         ("rpc_echo_frontend", "rpc_echo_server", "client"): "1",
         ("rpc_echo_frontend", "rpc_echo_server", "server"): "1",
     },
