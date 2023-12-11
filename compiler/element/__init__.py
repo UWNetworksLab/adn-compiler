@@ -60,22 +60,21 @@ def compile_element_property(engine_name: str, verbose: bool = False) -> Dict:
         req.check()
         resp.check()
         stateful = len(ir.definition.internal) > 0
+        rname = "record" if engine_name in ["logging", "metrics"] else "read"
         return {
             "stateful": stateful,
             "request": {
-                "read": req.read,
+                rname: req.read,
                 "write": req.write,
                 "drop": req.drop,
                 "block": req.block,
                 "copy": req.copy,
-                "record": engine_name in ["logging", "metrics"],
             },
             "response": {
-                "read": resp.read,
+                rname: resp.read,
                 "write": resp.write,
                 "drop": resp.drop,
                 "block": resp.block,
                 "copy": resp.copy,
-                "record": engine_name in ["logging", "metrics"],
             },
         }

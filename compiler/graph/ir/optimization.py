@@ -14,7 +14,7 @@ def gen_dependency(chain: List[AbsElement], path: str):
         ):
             fields.add(f)
     writer_table = {f: ["INPUT"] for f in fields}
-    dep = dict()
+    dep = {"read": dict(), "record": dict()}
     for element in chain:
         rfields, wfields, rec_fields = (
             element.get_prop(path, "read"),
@@ -29,13 +29,13 @@ def gen_dependency(chain: List[AbsElement], path: str):
         if wfields == "*":
             wfields = list(fields)
         for f in rfields:
-            dep[(element.deploy_name, f, "read")] = deepcopy(writer_table[f])
+            dep["read"][(element.deploy_name, f)] = deepcopy(writer_table[f])
         for f in rec_fields:
-            dep[(element.deploy_name, f, "record")] = deepcopy(writer_table[f])
+            dep["record"][(element.deploy_name, f)] = deepcopy(writer_table[f])
         for f in wfields:
             writer_table[f].append(element.deploy_name)
     for f in fields:
-        dep[("OUTPUT", f, "read")] = deepcopy(writer_table[f])
+        dep["read"][("OUTPUT", f)] = deepcopy(writer_table[f])
     return dep
 
 
@@ -49,7 +49,8 @@ def equivalent(chain: List[AbsElement], new_chain: List[AbsElement], path: str) 
         if element.position == "C" and server_element:
             return False
     dep, new_dep = gen_dependency(chain, path), gen_dependency(new_chain, path)
-    return dep == new_dep
+    return dep["read"] == new_dep["read"]
+    # return dep == new_dep
 
 
 class OptimizedLabel(Exception):
