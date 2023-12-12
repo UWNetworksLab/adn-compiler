@@ -59,18 +59,18 @@ def print_gir_summary(graphirs: Dict[str, GraphIR]):
     IR_LOG.info("GraphIR summary:")
     for gir in graphirs.values():
         gir_summary[gir.name]["post-optimized"] = gir.to_rich()
-        # gir_summary[gir.name]["property"] = {}
-        # for element in gir.elements["req_client"] + gir.elements["req_server"]:
-        # gir_summary[gir.name]["property"][element.deploy_name] = element.prop
+        gir_summary[gir.name]["property"] = {}
+        for element in gir.elements["req_client"] + gir.elements["req_server"]:
+            gir_summary[gir.name]["property"][element.deploy_name] = element.prop
     for gname, summary in gir_summary.items():
         console.print()
         console.print(gname, style="underline bold italic")
         console.print(Columns(["\n :snail: :\n"] + summary["pre-optimized"]))
         console.print(Columns(["\n :rocket: :\n"] + summary["post-optimized"]))
-        # if args.debug:
-        # console.print("Properties:")
-        # for ename, prop in summary["property"].items():
-        # console.print(f"{ename}: {prop['request']}")
+        if args.debug:
+            console.print("Properties:")
+            for ename, prop in summary["property"].items():
+                console.print(f"{ename}: {prop['request']}")
 
 
 def main(args):
