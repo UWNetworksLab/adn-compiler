@@ -25,7 +25,7 @@ gir_summary = dict()
 
 
 def compile_impl(engine_name: str, gen_dir: str, backend: str, placement: str):
-    gen_dir = os.path.join(gen_dir, f"{engine_name}_{backend}")
+    gen_dir = os.path.join(gen_dir, f"{engine_name}_{placement}_{backend}")
     os.system(f"mkdir -p {gen_dir}")
     gen_code(engine_name, engine_name, gen_dir, backend, placement)
 
@@ -39,7 +39,8 @@ def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
         for (element, placement) in elist:
             # For each element in the edge
             for name in element.name:
-                if name not in compiled_name:
+                identifier = name + placement
+                if identifier not in compiled_name:
                     if pseudo_impl:
                         pseudo_compile(
                             name, os.path.join(graph_base_dir, "gen"), args.backend
@@ -51,7 +52,7 @@ def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
                             args.backend,
                             placement,
                         )
-                compiled_name.add(name)
+                    compiled_name.add(identifier)
 
 
 def print_gir_summary(graphirs: Dict[str, GraphIR]):
