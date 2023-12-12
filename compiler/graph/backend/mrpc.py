@@ -20,12 +20,12 @@ phoenix_dir = os.getenv("PHOENIX_DIR")
 
 attach_mrpc = """addon_engine = "{current}Engine"
 tx_channels_replacements = [
-    ["{req_prev}Engine", "{current}Engine", 0, 0],
-    ["{current}Engine", "{req_next}Engine", 0, 0],
+    ["{tx_prev}Engine", "{current}Engine", 0, 0],
+    ["{current}Engine", "{tx_nxt}Engine", 0, 0],
 ]
 rx_channels_replacements = [
-    ["{res_prev}Engine", "{current}Engine", 0, 0],
-    ["{current}Engine", "{res_next}Engine", 0, 0],
+    ["{rx_prev}Engine", "{current}Engine", 0, 0],
+    ["{current}Engine", "{rx_nxt}Engine", 0, 0],
 ]
 group = {group}
 op = "attach"
@@ -35,8 +35,8 @@ config_string = '''
 """
 
 detach_mrpc = """addon_engine = "{current}Engine"
-tx_channels_replacements = [["{req_prev}Engine", "{req_next}Engine", 0, 0]]
-rx_channels_replacements = [["{res_prev}Engine", "{res_next}Engine", 0, 0]]
+tx_channels_replacements = [["{tx_prev}Engine", "{tx_nxt}Engine", 0, 0]]
+rx_channels_replacements = [["{rx_prev}Engine", "{rx_nxt}Engine", 0, 0]]
 op = "detach"
 
 """
@@ -105,10 +105,9 @@ def gen_attach_detach(
         pos: "client" or "server", which affects the order of Mrpc engines.
     """
     assert pos in ["client", "server"], "invalid position"
-    pre, nxt = "Mrpc", "TcpRpcAdapter"
-    starter, ender = pre, nxt
+    pre = "Mrpc" if pos == "client" else "TcpRpcAdapter"
     installed = {"Mrpc", "TcpRpcAdapter"}
-    group_list = [pre, nxt]
+    group_list = ["Mrpc", "TcpRpcAdapter"]
     for element in req_chain:
         attach_filename = os.path.join(
             local_gen_dir, f"attach-{service}-{pos}-{element.desc}.toml"
@@ -116,26 +115,37 @@ def gen_attach_detach(
         detach_filename = os.path.join(
             local_gen_dir, f"detach-{service}-{pos}-{element.desc}.toml"
         )
-        contents = {
-            "current": element.deploy_name,
-            "req_prev": pre,
-            "req_next": ender,
-            "res_prev": ender,
-            "res_next": starter,
-            "group": [f"{ename}Engine" for ename in group_list],
-            "config": element.configs,
-        }
+        if pos == "client":
+            contents = {
+                "current": element.deploy_name,
+                "tx_prev": pre,
+                "tx_nxt": "TcpRpcAdapter",
+                "rx_prev": "TcpRpcAdapter",
+                "rx_nxt": pre,
+                "group": [f"{ename}Engine" for ename in group_list],
+                "config": element.configs,
+            }
+        else:
+            contents = {
+                "current": element.deploy_name,
+                "tx_prev": "Mrpc",
+                "tx_nxt": pre,
+                "rx_prev": pre,
+                "rx_nxt": "Mrpc",
+                "group": [f"{ename}Engine" for ename in group_list],
+                "config": element.configs,
+            }
         # Find the currently installed prev/next element on the response chain.
-        for res_ele in res_chain:
-            if res_ele.desc == element.desc:
-                break
-            if res_ele.desc in installed:
-                contents["res_next"] = res_ele.deploy_name
-        for res_ele in res_chain[::-1]:
-            if res_ele.desc == element.desc:
-                break
-            if res_ele.desc in installed:
-                contents["res_prev"] = res_ele.deploy_name
+        # for res_ele in res_chain:
+        #     if res_ele.desc == element.desc:
+        #         break
+        #     if res_ele.desc in installed:
+        #         contents["res_next"] = res_ele.deploy_name
+        # for res_ele in res_chain[::-1]:
+        #     if res_ele.desc == element.desc:
+        #         break
+        #     if res_ele.desc in installed:
+        #         contents["res_prev"] = res_ele.deploy_name
         attach_script = attach_mrpc.format(**contents)
         detach_script = detach_mrpc.format(**contents)
         open(attach_filename, "w").write(attach_script)
@@ -157,13 +167,14 @@ def gen_attach_detach(
         pre = element.deploy_name
 
 
-def gen_install(elements: List[AbsElement], service: str, host: str):
+def gen_install(elements: List[AbsElement], service: str, host: str, placement: str):
     """Reconfigure phoenixos and install new elements in containers
 
     Args:
         elements: List of new elements to be deployed.
         service: Service name.
         host: hostname.
+        placement: "client" or "server".
     """
     lib_names = list({element.lib_name for element in elements})
     dep = [
@@ -226,13 +237,13 @@ def gen_install(elements: List[AbsElement], service: str, host: str):
         copy_remote_container(
             service,
             host,
-            f"{graph_base_dir}/gen/{lname}_mrpc/api/{lname}",
+            f"{graph_base_dir}/gen/{lname}_{placement}_mrpc/api/{lname}",
             f"{container_gen_dir}/api/{lname}",
         )
         copy_remote_container(
             service,
             host,
-            f"{graph_base_dir}/gen/{lname}_mrpc/plugin/{lname}",
+            f"{graph_base_dir}/gen/{lname}_{placement}_mrpc/plugin/{lname}",
             f"{container_gen_dir}/plugin/{lname}",
         )
     # Compile & deploy engines.
@@ -282,14 +293,22 @@ def scriptgen_mrpc(girs: Dict[str, GraphIR], app: str):
     service_pos = service_pos_dict[app]
 
     # Collect list of elements deployed on each service.
-    service_elements: Dict[str, List[AbsElement]] = defaultdict(list)
+    service_elements_client: Dict[str, List[AbsElement]] = defaultdict(list)
+    service_elements_server: Dict[str, List[AbsElement]] = defaultdict(list)
     for gir in girs.values():
-        service_elements[gir.client].extend(gir.elements["req_client"])
-        service_elements[gir.server].extend(gir.elements["req_server"])
-    service_elements = {key: value for key, value in service_elements.items() if value}
+        service_elements_client[gir.client].extend(gir.elements["req_client"])
+        service_elements_server[gir.server].extend(gir.elements["req_server"])
+    service_elements_client = {
+        key: value for key, value in service_elements_client.items() if value
+    }
+    service_elements_server = {
+        key: value for key, value in service_elements_server.items() if value
+    }
 
-    for service, elements in service_elements.items():
-        gen_install(elements, service, service_pos[service])
+    for service, elements in service_elements_client.items():
+        gen_install(elements, service, service_pos[service], "client")
+    for service, elements in service_elements_server.items():
+        gen_install(elements, service, service_pos[service], "server")
 
     pids = dict()
     for service, host in service_pos.items():
