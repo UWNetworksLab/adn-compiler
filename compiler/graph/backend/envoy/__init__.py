@@ -8,59 +8,10 @@ import yaml
 
 from compiler import graph_base_dir
 from compiler.graph.backend import BACKEND_CONFIG_DIR
+from compiler.graph.backend.boilerplate import attach_yml
+from compiler.graph.backend.config import port_dict, service_pos_dict
 from compiler.graph.backend.utils import copy_remote_host, execute_local, kapply
 from compiler.graph.ir import GraphIR
-
-attach_yml = """apiVersion: networking.istio.io/v1alpha3
-kind: EnvoyFilter
-metadata:
-  name: {metadata_name}
-spec:
-  workloadSelector:
-    labels:
-      app: {service}
-  configPatches:
-  - applyTo: HTTP_FILTER
-    match:
-      context: {bound}
-      listener:
-        portNumber: {port}
-        filterChain:
-          filter:
-            name: "envoy.filters.network.http_connection_manager"
-            subFilter:
-              name: "envoy.filters.http.router"
-    patch:
-      operation: INSERT_BEFORE
-      value:
-        name: envoy.filters.http.wasm
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
-          config:
-            name: {name}
-            root_id: {name}
-            vm_config:
-              vm_id: {vmid}
-              runtime: envoy.wasm.runtime.v8
-              code:
-                local:
-                  filename: {filename}
-              allow_precompiled: false
-"""
-
-service_pos_dict = {
-    "rpc_echo_bench": {
-        "frontend": "h2",
-        "ping": "h3",
-    }
-}
-
-port_dict = {
-    "rpc_echo_bench": {
-        "ping": "8081",
-        "pong": "8082",
-    }
-}
 
 
 def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
@@ -100,7 +51,7 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
 
     # Copy filter binaries to worker nodes and generate mount scripts
     with open(
-        os.path.join(BACKEND_CONFIG_DIR, "ping-app-istio-template.yml"), "r"
+        os.path.join(BACKEND_CONFIG_DIR, "ping_pong_istio_template.yml"), "r"
     ) as f:
         yml_list = list(yaml.safe_load_all(f))
     frontend_deploy, ping_deploy, pong_deploy = yml_list[1], yml_list[3], yml_list[5]
