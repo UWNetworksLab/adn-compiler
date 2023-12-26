@@ -5,10 +5,10 @@ from string import Formatter
 from typing import Dict, List
 
 from compiler.config import COMPILER_ROOT
-from compiler.element.backend.boilerplate import *
+from compiler.element.backend.mrpc.boilerplate import *
+from compiler.element.backend.mrpc.rustgen import RustContext
+from compiler.element.backend.mrpc.rusttype import RustGlobalFunctions
 from compiler.element.backend.protobuf import HelloProto
-from compiler.element.backend.rustgen import RustContext
-from compiler.element.backend.rusttype import RustGlobalFunctions
 from compiler.element.logger import ELEMENT_LOG as LOG
 
 # name: table_rpc_events

@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from compiler.element.backend.rusttype import *
+from compiler.element.backend.mrpc.rusttype import *
 from compiler.element.logger import ELEMENT_LOG as LOG
 from compiler.element.node import *
 from compiler.element.visitor import Visitor
@@ -264,7 +264,6 @@ class RustGenerator(Visitor):
             raise Exception("unknown function")
 
     def visitPattern(self, node: Pattern, ctx):
-        LOG.info(f"Pattern being visited, {node.value}")
         if isinstance(node.value, Identifier):
             assert node.some
             name = node.value.name

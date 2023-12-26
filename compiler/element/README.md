@@ -7,10 +7,13 @@ Element compiler convert ADN program to an IR. From IR, we can infer the element
 ```
 cd compiler
 export PYTHONPATH=$PYTHONPATH:$(pwd):$(dirname $(pwd))
-python ir_main.py -e acl -v True
-# v for verbose, which is `false` by default
-# refer to example/match-action for more engine names
+python ir_main.py -e acl -v True -b envoy -p c
 ```
+
+`v` for verbose, which is `false` by default
+`e` for engine_name, refer to ./examples/element for more engine names
+`b` for backend_name, which is either `mrpc` or `envoy`
+`p` for placement, which is either `c` client or `s` server
 
 ## Supported Backends
 

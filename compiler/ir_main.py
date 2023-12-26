@@ -8,8 +8,8 @@ from typing import Dict
 
 from compiler.config import COMPILER_ROOT
 from compiler.element import compile_element_property, gen_code
-from compiler.element.backend.finalizer import finalize
-from compiler.element.backend.rustgen import RustContext, RustGenerator
+from compiler.element.backend.mrpc.finalizer import finalize
+from compiler.element.backend.mrpc.rustgen import RustContext, RustGenerator
 from compiler.element.deploy import install, move_template
 from compiler.element.frontend import IRCompiler, Printer
 from compiler.element.logger import ELEMENT_LOG as LOG
@@ -17,7 +17,6 @@ from compiler.element.logger import init_logging
 from compiler.element.props.flow import FlowGraph
 
 if __name__ == "__main__":
-
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -40,7 +39,7 @@ if __name__ == "__main__":
         required=True,
         default="c",
     )
-
+    parser.add_argument("-b", "--backend", help="Backend Code Target", required=True)
     init_logging(True)
     # parser.add_argument("--verbose", help="Print Debug info", action="store_true")
     # parser.add_argument(
@@ -53,6 +52,7 @@ if __name__ == "__main__":
     # )
     args = parser.parse_args()
     engines = args.engine.split(",")
+    backend = args.backend
     LOG.info(f"engines: {engines}")
     verbose = args.verbose
     deploy = args.deploy
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     ret = gen_code(
         engines,
         output_name,
-        str(COMPILER_ROOT) + "/generated",
-        "mrpc",
+        str(COMPILER_ROOT) + "/generated/" + str(backend),
+        backend,
         placement,
         verbose,
     )
