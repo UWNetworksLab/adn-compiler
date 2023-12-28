@@ -1,6 +1,6 @@
 files: (?x)^(
         compiler/.*|
-        graph_compiler/.*
+        experiments/.*
     )$
 repos:
 -   repo: https://github.com/pycqa/isort
