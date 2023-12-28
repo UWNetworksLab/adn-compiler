@@ -1,15 +1,21 @@
 import argparse
-from pathlib import Path
-import sys
 import os
+import sys
+from pathlib import Path
+
 import yaml
 
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from experiments import EXP_DIR, ROOT_DIR
-from experiments.utils import select_random_elements, set_element_pool, run_wrk_and_get_latency, run_wrk2_and_get_cpu
-from compiler.graph.backend.utils import ksync, execute_local
+from compiler.graph.backend.utils import execute_local, ksync
 from compiler.graph.logger import EVAL_LOG, init_logging
+from experiments import EXP_DIR, ROOT_DIR
+from experiments.utils import (
+    run_wrk2_and_get_cpu,
+    run_wrk_and_get_latency,
+    select_random_elements,
+    set_element_pool,
+)
 
 # Some elements
 envoy_element_pool = {
@@ -34,13 +40,11 @@ app_structure = {
 }
 
 yml_header = {
-    "envoy": 
-"""app_name: "ping_pong_bench"
+    "envoy": """app_name: "ping_pong_bench"
 app_structure:
 -   "frontend->ping"
 """,
-    "mrpc":
-"""app_name: "rpc_echo_bench"
+    "mrpc": """app_name: "rpc_echo_bench"
 app_structure:
 -   "rpc_echo_frontend->rpc_echo_server"
 """,
@@ -51,9 +55,13 @@ report_dir = os.path.join(EXP_DIR, "report")
 
 
 def gen_user_spec(backend: str, num: int, path: str) -> str:
-    EVAL_LOG.info(f"Randomly generate user specification, backend = {backend}, num = {num}")
+    EVAL_LOG.info(
+        f"Randomly generate user specification, backend = {backend}, num = {num}"
+    )
     assert path.endswith(".yml"), "wrong user spec format"
-    spec = yml_header[backend] + select_random_elements(app_structure[backend]["client"], app_structure[backend]["server"], num)
+    spec = yml_header[backend] + select_random_elements(
+        app_structure[backend]["client"], app_structure[backend]["server"], num
+    )
     with open(path, "w") as f:
         f.write(spec)
     return spec
@@ -76,16 +84,22 @@ def detach_elements(backend: str):
         ksync()
     else:
         raise NotImplementedError
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", type=str, required=True, choices=["mrpc", "envoy"])
     parser.add_argument("--num", type=int, help="element chain length", default=3)
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--latency_duration", type=int, default=60)
-    parser.add_argument("--cpu_duration", type=int, default=60)
-    parser.add_argument("--target_rate", type=int, default=2000)
+    parser.add_argument("--debug", help="Print backend debug info", action="store_true")
+    parser.add_argument(
+        "--latency_duration", help="wrk duration for latency test", type=int, default=60
+    )
+    parser.add_argument(
+        "--cpu_duration", help="wrk2 duration for cpu usage test", type=int, default=60
+    )
+    parser.add_argument(
+        "--target_rate", help="wrk2 request rate", type=int, default=2000
+    )
     args = parser.parse_args()
 
     init_logging(args.debug)
@@ -98,12 +112,12 @@ if __name__ == "__main__":
 
     spec = gen_user_spec(args.backend, args.num, os.path.join(gen_dir, "test.yml"))
     ncpu = int(execute_local(["nproc"]))
-    results = { "pre-optimize": {}, "post-optimize": {} }
+    results = {"pre-optimize": {}, "post-optimize": {}}
 
     for mode in ["pre-optimize", "post-optimize"]:
         compile_cmd = [
             "python3",
-            os.path.join(ROOT_DIR,"compiler/main.py"),
+            os.path.join(ROOT_DIR, "compiler/main.py"),
             "--spec",
             os.path.join(EXP_DIR, "gen/test.yml"),
             "--backend",
