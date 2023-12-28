@@ -142,12 +142,17 @@ def wait_until_running(namespace: str = "default"):
             time.sleep(2)
 
 
+def ksync():
+    """Restart pods to ensure all changes are synchronized"""
+    execute_local(["kubectl", "delete", "pods", "--all"])
+    wait_until_running()
+
+
 def kapply(file: str):
-    """Run `kubectl apply -f file` and restart pods to ensure all changes are synchronized.
+    """Apply changes in file to knodes.
 
     Args:
         file: configuration filename.
     """
     execute_local(["kubectl", "apply", "-f", file])
-    execute_local(["kubectl", "delete", "pods", "--all"])
-    wait_until_running()
+    ksync()
