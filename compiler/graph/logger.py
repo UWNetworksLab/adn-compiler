@@ -4,8 +4,9 @@ import colorlog
 
 IR_LOG = logging.getLogger("ir")
 BACKEND_LOG = logging.getLogger("backend")
+EVAL_LOG = logging.getLogger("eval")
 
-loggers = [IR_LOG, BACKEND_LOG]
+loggers = [IR_LOG, BACKEND_LOG, EVAL_LOG]
 
 
 def init_logging(dbg: bool):
