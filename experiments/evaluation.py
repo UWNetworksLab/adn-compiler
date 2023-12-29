@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
         EVAL_LOG.info(f"Running latency tests for {args.latency_duration}s")
         results[mode]["latency"] = run_wrk_and_get_latency(args.latency_duration)
-        EVAL_LOG.info("Running cpu usage tests")
+        EVAL_LOG.info(f"Running cpu usage tests for {args.cpu_duration}s")
         results[mode]["cpu"] = run_wrk2_and_get_cpu(
             ["h2", "h3"],
             cores_per_node=ncpu,
