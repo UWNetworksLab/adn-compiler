@@ -23,12 +23,12 @@ def retrieve(ctx: WasmContext, name: str) -> Dict:
         "RequestBody": "".join(ctx.req_body_code),
         "ResponseHeaders": "".join(ctx.resp_hdr_code),
         "ResponseBody": "".join(ctx.resp_body_code),
-        "ExternalCallResponse": "".join(ctx.external_call_response_code)
+        "ExternalCallResponse": "".join(ctx.external_call_response_code),
     }
 
 
-def codegen_from_template(_placement, output_dir, snippet, lib_name, proto_path):
-
+def codegen_from_template(output_dir, snippet, lib_name, proto_path):
+    # This method generates the backend code from the template
     os.system(f"rm -rf {output_dir}")
     os.system(f"mkdir -p {output_dir}")
     os.system(f"mkdir -p {output_dir}/src")
@@ -64,4 +64,4 @@ def finalize(
     name: str, ctx: WasmContext, output_dir: str, placement: str, proto_path: str
 ):
     snippet = retrieve(ctx, name)
-    codegen_from_template(placement, output_dir, snippet, name, proto_path)
+    codegen_from_template(output_dir, snippet, name, proto_path)

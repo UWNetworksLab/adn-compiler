@@ -71,7 +71,9 @@ if __name__ == "__main__":
     LOG.info(f"Property Analysis took: {(end-start).microseconds/1000}ms")
 
     # Generate real element code
-    output_name = "Gen" + "".join(elements).capitalize() + placement.lower().capitalize()
+    output_name = (
+        "Gen" + "".join(elements).capitalize() + placement.lower().capitalize()
+    )
     ret = gen_code(
         elements,
         output_name,

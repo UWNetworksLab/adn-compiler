@@ -86,6 +86,7 @@ class WasmVecType(WasmType):
 
 class WasmMapType(WasmType):
     def __init__(self, con: str, key: WasmType, value: WasmType) -> None:
+        # e.g., HashMap<String, String>
         super().__init__(f"{con}<{key.name}, {value.name}>")
         self.con = con
         self.key = key
@@ -163,7 +164,10 @@ class WasmVariable:
         temp: bool,
         rpc: bool,
         atomic: bool,
-        sync: bool = False,
+        inner: bool,
+        consistency: str = None,
+        combiner: str = "LWW",
+        persistence: bool = False,
         init: Optional[str] = None,
     ) -> None:
         self.name = name
@@ -171,9 +175,14 @@ class WasmVariable:
         self.temp = temp
         self.rpc = rpc
         self.atomic = atomic
-        # if sync is set to True, it means that this variable needs to be synchronized across all element instances.
+        self.inner = inner
+        # if consistency is set to True, it means that this variable needs to be synchronized across all element instances.
         # Thus, we need to access a remote storage on every call.
-        self.sync = sync 
+        self.consistency = consistency
+        # Combiner function for this variable. If not set, the default combiner function (last writer wins) is used.
+        self.combiner = combiner
+        # if persistence is set to True, it means that this variable needs to be persisted.
+        self.persistence = persistence
 
         if init is None:
             self.init = ""
