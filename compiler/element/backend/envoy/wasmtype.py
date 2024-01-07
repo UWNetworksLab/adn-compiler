@@ -163,6 +163,7 @@ class WasmVariable:
         temp: bool,
         rpc: bool,
         atomic: bool,
+        sync: bool = False,
         init: Optional[str] = None,
     ) -> None:
         self.name = name
@@ -170,6 +171,9 @@ class WasmVariable:
         self.temp = temp
         self.rpc = rpc
         self.atomic = atomic
+        # if sync is set to True, it means that this variable needs to be synchronized across all element instances.
+        # Thus, we need to access a remote storage on every call.
+        self.sync = sync 
 
         if init is None:
             self.init = ""
@@ -200,11 +204,11 @@ class WasmVariable:
 
 WasmGlobalFunctions = {
     "encrypt": WasmFunctionType(
-        "Gen_encrypt",
+        "gen_encrypt",
         [WasmType("&str"), WasmType("&str")],
         WasmBasicType("String"),
         False,
-        """pub fn Gen_encrypt(a: &str, b: &str) -> String {
+        """pub fn gen_encrypt(a: &str, b: &str) -> String {
             let mut ret = String::new();
             for (x, y) in a.bytes().zip(b.bytes()) {
                 ret.push((x ^ y) as char);
@@ -213,11 +217,11 @@ WasmGlobalFunctions = {
         }""",
     ),
     "decrypt": WasmFunctionType(
-        "Gen_decrypt",
+        "gen_decrypt",
         [WasmType("&str"), WasmType("&str")],
         WasmBasicType("String"),
         False,
-        """pub fn Gen_decrypt(a: &str, b: &str) -> String {
+        """pub fn gen_decrypt(a: &str, b: &str) -> String {
             let mut ret = String::new();
             for (x, y) in a.bytes().zip(b.bytes()) {
                 ret.push((x ^ y) as char);
@@ -226,62 +230,62 @@ WasmGlobalFunctions = {
     }""",
     ),
     "update_window": WasmFunctionType(
-        "Gen_update_window",
+        "gen_update_window",
         [WasmBasicType("u64"), WasmBasicType("u64")],
         WasmBasicType("u64"),
         False,
-        "pub fn Gen_update_window(a: u64, b: u64) -> u64 { a.max(b) }",
+        "pub fn gen_update_window(a: u64, b: u64) -> u64 { a.max(b) }",
     ),
     "current_time": WasmFunctionType(
-        "Gen_current_timestamp",
+        "gen_current_timestamp",
         [],
         WasmBasicType("f32"),
         True,
-        """pub fn Gen_current_timestamp(ctx: & impl Context) -> f32 {
+        """pub fn gen_current_timestamp(ctx: & impl Context) -> f32 {
             DateTime::<Utc>::from(ctx.get_current_time()).timestamp() as f32
         }""",
     ),
     "time_diff": WasmFunctionType(
-        "Gen_time_difference",
+        "gen_time_difference",
         [WasmBasicType("f32"), WasmBasicType("f32")],
         WasmBasicType("f32"),
         False,
-        "pub fn Gen_time_difference(a: f32, b: f32) -> f32 { a - b }",
+        "pub fn gen_time_difference(a: f32, b: f32) -> f32 { a - b }",
     ),
     "random_f32": WasmFunctionType(
-        "Gen_random_f32",
+        "gen_random_f32",
         [WasmBasicType("f32"), WasmBasicType("f32")],
         WasmBasicType("f32"),
         False,
-        "pub fn Gen_random_f32(l: f32, r: f32) -> f32 { rand::random::<f32>() }",
+        "pub fn gen_random_f32(l: f32, r: f32) -> f32 { rand::random::<f32>() }",
     ),
     "random_u32": WasmFunctionType(
-        "Gen_random_u32",
+        "gen_random_u32",
         [WasmBasicType("u32"), WasmBasicType("u32")],
         WasmBasicType("u32"),
         False,
-        "pub fn Gen_random_u32(l: u32, r: u32) -> u32 { rand::random::<u32>() }",
+        "pub fn gen_random_u32(l: u32, r: u32) -> u32 { rand::random::<u32>() }",
     ),
     "min_u64": WasmFunctionType(
-        "Gen_min_u64",
+        "gen_min_u64",
         [WasmBasicType("u64"), WasmBasicType("u64")],
         WasmBasicType("u64"),
         False,
-        "pub fn Gen_min_u64(a: u64, b: u64) -> u64 { a.min(b) }",
+        "pub fn gen_min_u64(a: u64, b: u64) -> u64 { a.min(b) }",
     ),
     "min_f64": WasmFunctionType(
-        "Gen_min_f64",
+        "gen_min_f64",
         [WasmBasicType("f64"), WasmBasicType("f64")],
         WasmBasicType("f64"),
         False,
-        "pub fn Gen_min_f64(a: f64, b: f64) -> f64 { a.min(b) }",
+        "pub fn gen_min_f64(a: f64, b: f64) -> f64 { a.min(b) }",
     ),
     "encrypt": WasmFunctionType(
-        "Gen_encrypt",
+        "gen_encrypt",
         [WasmType("&str"), WasmType("&str")],
         WasmBasicType("String"),
         False,
-        """pub fn Gen_encrypt(a: &str, b: &str) -> String {
+        """pub fn gen_encrypt(a: &str, b: &str) -> String {
             let mut ret = String::new();
             for (x, y) in a.bytes().zip(b.bytes()) {
                 ret.push((x ^ y) as char);

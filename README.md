@@ -17,6 +17,8 @@ Run the following script to install necessary tools:
 ```bash
 cd ~/adn-compiler
 . ./install.sh
+# Alternatively, if you need to install Python3.10, run:
+. ./utils/python310.sh
 ```
 
 # Usage
@@ -26,7 +28,7 @@ See [compiler README ](./compiler/README.md) for usage.
 ## Supported Backends
 
 - [**mRPC**](https://github.com/phoenix-dataplane/phoenix) 
-- [**Envoy**](https://www.envoyproxy.io/) (via [**Proxy WASM**](https://github.com/proxy-wasm/proxy-wasm-rust-sdk))
+- [**Envoy**](https://www.envoyproxy.io/) (via [**Proxy WASM Rust SDK**](https://github.com/proxy-wasm/proxy-wasm-rust-sdk))
 - [**gRPC**](https://github.com/grpc/grpc-go) (via [**Interceptors**](https://github.com/grpc-ecosystem/go-grpc-middleware))
     - In progress
 

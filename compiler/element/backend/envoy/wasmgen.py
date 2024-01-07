@@ -10,27 +10,32 @@ FUNC_REQ_BODY = "req_body"
 FUNC_RESP_HEADER = "resp_hdr"
 FUNC_RESP_BODY = "resp_body"
 FUNC_INIT = "init"
-
+FUNC_EXTERNAL_RESPONSE = "external_response"
 
 class WasmContext:
     def __init__(self, proto=None, method_name=None) -> None:
-        self.internal_states: List[WasmVariable] = []
-        self.inners: List[WasmVariable] = []
-        self.name2var: Dict[str, WasmVariable] = {}
-        self.current_func: str = "unknown"
-        self.params: List[WasmVariable] = []
-        self.init_code: List[str] = []
-        self.req_hdr_code: List[str] = []
-        self.resp_hdr_code: List[str] = []
-        self.req_body_code: List[str] = []
-        self.resp_body_code: List[str] = []
-        self.proto: str = proto
-        self.method_name: str = method_name
+        self.internal_states: List[WasmVariable] = []  # List of internal state variables
+        self.inners: List[WasmVariable] = []  # Inners are temp variables used to access state
+        self.name2var: Dict[str, WasmVariable] = {}  # Mapping from names to Wasm variables
+        self.current_func: str = "unknown"  # Name of the current function being processed
+        self.params: List[WasmVariable] = []  # List of parameters for the function
+        self.init_code: List[str] = []  # Code for initialization
+        self.req_hdr_code: List[str] = []  # Code for request header processing
+        self.resp_hdr_code: List[str] = []  # Code for response header processing
+        self.req_body_code: List[str] = []  # Code for request body processing
+        self.resp_body_code: List[str] = []  # Code for response body processing
+        self.external_call_response_code: List[str] = []  # Code for handling external call responses (state sync)
+        self.decode: bool = True  # Flag to determine whether to decode the RPC 
+        self.proto: str = proto  # Protobuf used
+        self.method_name: str = method_name  # Name of the RPC method
 
     def declare(self, name: str, rtype: WasmType, temp: bool, atomic: bool) -> None:
+        # This method declares a new variable in the Wasm context and add it to the name2var mapping
         if name in self.name2var:
-            raise Exception(f"variable {name} already defined")
+            # Check for duplicate variable names
+            raise Exception(f"variable {name} already defined") 
         else:
+            # Create a new WasmVariable instance
             var = WasmVariable(
                 name,
                 rtype,
@@ -41,6 +46,7 @@ class WasmContext:
             if not temp and not var.rpc and atomic:
                 var.init = rtype.gen_init()
                 self.internal_states.append(var)
+                # Create an inner variable for the declared variable
                 v_inner = WasmVariable(name + "_inner", rtype, False, False, False)
                 self.inners.append(v_inner)
                 self.name2var[name] = v_inner
@@ -65,18 +71,22 @@ class WasmContext:
         self.name2var = new_dic
 
     def push_code(self, code: str) -> None:
+        # This method appends the given code to the appropriate list based on the current function context
         if self.current_func == FUNC_INIT:
-            self.init_code.append(code)
+            self.init_code.append(code)  
         elif self.current_func == FUNC_REQ_HEADER:
-            self.req_hdr_code.append(code)
+            self.req_hdr_code.append(code)  
         elif self.current_func == FUNC_REQ_BODY:
-            self.req_body_code.append(code)
+            self.req_body_code.append(code)  
         elif self.current_func == FUNC_RESP_HEADER:
-            self.resp_hdr_code.append(code)
+            self.resp_hdr_code.append(code)  
         elif self.current_func == FUNC_RESP_BODY:
-            self.resp_body_code.append(code)
+            self.resp_body_code.append(code)  
+        elif self.current_func == FUNC_EXTERNAL_RESPONSE:
+            self.external_call_response_code.append(code)
         else:
-            raise Exception("unknown function")
+            raise Exception("unknown function")  # Raise an exception if the current function context is unknown
+
 
     def find_var(self, name: str) -> Optional[WasmVariable]:
         if name in self.name2var:
@@ -105,6 +115,7 @@ class WasmContext:
         assert field.startswith("meta")
         if field == "meta_status":
             if self.current_func == FUNC_REQ_BODY:
+                # Meta status is only set in the response
                 raise Exception("Should not read meta in request")
             if self.current_func == FUNC_RESP_BODY:
                 self.resp_hdr_code.append(
@@ -152,13 +163,13 @@ class WasmGenerator(Visitor):
         match node.name:
             case "init":
                 ctx.current_func = FUNC_INIT
-                message_type = "init"  # unused, make python happy
+                procedure_type = "init"  # unused, make python happy
             case "req":
                 ctx.current_func = FUNC_REQ_BODY
-                message_type = "Request"
+                procedure_type = "Request"
             case "resp":
                 ctx.current_func = FUNC_RESP_BODY
-                message_type = "Response"
+                procedure_type = "Response"
             case _:
                 raise Exception("unknown function")
         ctx.clear_temps()
@@ -176,7 +187,7 @@ class WasmGenerator(Visitor):
         prefix = f"""
         if let Some(body) = self.get_http_{name}_body(0, body_size) {{
 
-            match {ctx.proto}::{ctx.method_name}{message_type}::decode(&body[5..]) {{
+            match {ctx.proto}::{ctx.method_name}{procedure_type}::decode(&body[5..]) {{
                 Ok(mut rpc_{name}) => {{
         """
         suffix = f"""
@@ -265,7 +276,7 @@ class WasmGenerator(Visitor):
                     lhs = var.name
                 return f"{lhs} = ({value}) as {var.type.name};\n"
 
-    def visitPattern(self, node: Pattern, ctx):
+    def visitPattern(self, node: Pattern, ctx: WasmContext):
         if isinstance(node.value, Identifier):
             assert node.some
             name = node.value.name
@@ -443,8 +454,9 @@ class WasmGenerator(Visitor):
                     raise Exception("unknown method", node.method)
         return ret
 
-    def visitSend(self, node: Send, ctx) -> str:
-        #! todo currently do not support doing things after send!
+    def visitSend(self, node: Send, ctx: WasmContext) -> str:
+        # TODO: currently do not support doing things after send!
+        # TODO: The status code should be configurable
         if isinstance(node.msg, Error):
             return """
                         self.send_http_response(

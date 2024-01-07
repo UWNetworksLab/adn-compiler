@@ -6,4 +6,7 @@ set -e
 sudo apt install -y python3-pip
 pip install lark pre-commit tomli tomli_w colorlog rich kubernetes yaml
 
+echo "Installing Rust"
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+
 set +e
