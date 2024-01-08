@@ -55,9 +55,27 @@ The element compiler convert ADN program to an IR. From IR, we can infer the ele
 cd compiler
 export PYTHONPATH=$PYTHONPATH:$(pwd):$(dirname $(pwd))
 # The code will be in the `./generated/` directory
-python element_compiler_test.py -e acl -b envoy -p c -v
 
-# The element compiler can
+❯ python element_compiler_test.py --element acl --backend envoy --placement client --proto ping.proto --method_name PingEcho
+
+usage: element_compiler_test.py [-h] -e ELEMENT [-v] [-d DEPLOY] -p PLACEMENT -r
+                                PROTO -m METHOD_NAME -b BACKEND
+
+options:
+  -h, --help            show this help message and exit
+  -e ELEMENT, --element ELEMENT
+                        (Element_name',') *
+  -v, --verbose         Print Debug info
+  -d DEPLOY, --deploy DEPLOY
+                        Deploy to the target directory
+  -p PLACEMENT, --placement PLACEMENT
+                        Placement of the generated code
+  -r PROTO, --proto PROTO
+                        Filename of the Protobuf definition (e.g., hello.proto)
+  -m METHOD_NAME, --method_name METHOD_NAME
+                        Method Name (must be defined in proto)
+  -b BACKEND, --backend BACKEND
+                        Backend Code Target
 ```
 
 - `-v` for verbose

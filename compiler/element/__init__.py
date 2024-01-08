@@ -31,11 +31,24 @@ def gen_code(
         output_dir (str): The directory where the output will be stored.
         backend_name (str): The name of the backend to be used (supports 'mrpc' or 'envoy').
         placement (str): The placement for the code generation.
+        proto_path: (str):  The path to the proto file (e.g., hello.proto).
+        method_name: (str): The name of the method to be used in the proto file.
         verbose (bool, optional): If True, provides detailed logging. Defaults to False.
 
     Raises:
         AssertionError: If the backend_name is not 'mrpc' or 'envoy'.
     """
+
+    # Check if the proto file and method name exists
+    if not os.path.exists(proto_path):
+        raise FileNotFoundError(f"The proto file {proto_path} does not exist.")
+
+    with open(proto_path, "r") as file:
+        proto_def = file.read()
+
+        if method_name not in proto_def:
+            raise ValueError(f"Method {method_name} not found in {proto_path}.")
+    proto = os.path.basename(proto_path).replace(".proto", "")
 
     # Currently, we only support mRPC and Envoy (Proxy WASM) as the backends
     assert backend_name == "mrpc" or backend_name == "envoy"
@@ -51,9 +64,7 @@ def gen_code(
         generator = WasmGenerator(placement)
         finalize = WasmFinalize
         # TODO(XZ): We assume there will be only one method being used in an element.
-        ctx = WasmContext(
-            proto=proto_path.replace(".proto", ""), method_name=method_name
-        )
+        ctx = WasmContext(proto=proto, method_name=method_name)
 
     printer = Printer()
 
@@ -122,7 +133,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
     stateful = False
     consistency = None
     combiner = "LWW"
-    persistence = "ephemeral"
+    persistence = False
 
     for element_name in element_names:
         LOG.info(f"(Property Analyzer) Parsing {element_name}")

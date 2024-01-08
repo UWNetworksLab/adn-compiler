@@ -6,7 +6,7 @@ declaration: (consistency_decorator | combiner_decorator | persistence_decorator
 
 consistency_decorator: "@consistency" "(" CNAME ")"
 combiner_decorator: "@combiner" "(" CNAME ")"
-persistence_decorator: "@persistence" "(" CNAME ")"
+persistence_decorator: "@persistence" "(" bool ")"
 
 identifier: CNAME
 
@@ -50,6 +50,8 @@ func: identifier arguments
 arguments: "(" (expr | (expr ","))*  ")"
 
 const: CNAME | quoted_string | NUMBER
+
+bool: "true" -> true | "false" -> false
 
 get: "get" "(" expr ")"
 set_: "set" ( "(" expr "," expr ")" | "(" expr ")" )
