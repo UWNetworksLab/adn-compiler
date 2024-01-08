@@ -4,6 +4,8 @@ use proxy_wasm::types::{{Action, LogLevel}};
 use proxy_wasm::traits::RootContext;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use serde_json::Value;
+use std::time::Duration;
 use std::sync::Mutex;
 use prost::Message;
 use chrono::{{DateTime, Utc}};
@@ -119,6 +121,7 @@ log = "0.4"
 prost = "0.11.0"
 proxy-wasm = "0.2.0"
 lazy_static = "1.4.0"
+serde_json = "1.0"
 rand = "0.7.0"
 getrandom = {{ version = "0.2", features = ["js"] }}
 chrono = {{ version = "0.4", default-features = false, features = ["clock", "std"] }}

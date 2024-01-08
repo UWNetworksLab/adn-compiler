@@ -131,8 +131,11 @@ class Send(Statement):
 
 
 class Type(Node):
-    def __init__(self, name: str):
+    def __init__(self, name: str, consistency: str, combiner: str, persistence: bool):
         self.name = name
+        self.consistency = consistency
+        self.combiner = combiner
+        self.persistence = persistence
 
 
 class Literal(Node):

@@ -65,7 +65,10 @@ class WasmContext:
                 combiner=combiner,
                 persistence=persistence,
             )
-            if not temp_var and not var.rpc and atomic:
+            if consistency == "strong":
+                self.internal_states.append(var)
+                self.name2var[name] = var
+            elif not temp_var and not var.rpc and atomic:
                 # If it's not a temp variable and does not belong to RPC request or response processing.
                 var.init = rtype.gen_init()
                 self.internal_states.append(var)
@@ -85,7 +88,8 @@ class WasmContext:
     def gen_inners(self) -> str:
         ret = ""
         for v in self.internal_states:
-            ret = ret + f"let mut {v.name}_inner = {v.name}.lock().unwrap();\n"
+            if v.consistency != "strong":
+                ret = ret + f"let mut {v.name}_inner = {v.name}.lock().unwrap();\n"
         return ret
 
     def clear_temps(self) -> None:
@@ -126,6 +130,8 @@ class WasmContext:
     def gen_global_var_def(self) -> str:
         ret = ""
         for v in self.internal_states:
+            if v.consistency == "strong":
+                continue
             wrapped = WasmMutex(v.type)
             ret = (
                 ret
@@ -172,7 +178,7 @@ class WasmGenerator(Visitor):
         node.definition.accept(self, ctx)
         node.init.accept(self, ctx)
         for v in ctx.internal_states:
-            if v.init == "":
+            if v.init == "" and v.consistency != "strong":
                 v.init = v.type.gen_init()
         node.req.accept(self, ctx)
         node.resp.accept(self, ctx)
@@ -180,9 +186,11 @@ class WasmGenerator(Visitor):
     def visitInternal(self, node: Internal, ctx: WasmContext) -> None:
         # Iterate through all internal state variables and declare them
         for (i, t, cons, comb, per) in node.internal:
-            name = i.name
-            wasm_type = t.accept(self, ctx)
-            ctx.declare(name, wasm_type, False, True, cons.name, comb.name, per.name)
+            state_name = i.name
+            state_wasm_type = t.accept(self, ctx)
+            ctx.declare(
+                state_name, state_wasm_type, False, True, cons.name, comb.name, per.name
+            )
 
     def visitProcedure(self, node: Procedure, ctx: WasmContext):
         # TODO: Add request and response header processing.
@@ -234,7 +242,7 @@ class WasmGenerator(Visitor):
                 raise Exception(f"param {name} not found")
         for s in node.body:
             code = s.accept(self, ctx)
-            # print(code)
+            print(code)
             ctx.push_code(code)
 
         if ctx.current_procedure != FUNC_INIT:
@@ -352,7 +360,7 @@ class WasmGenerator(Visitor):
             case _:
                 raise Exception("unknown operator")
 
-    def visitIdentifier(self, node: Identifier, ctx):
+    def visitIdentifier(self, node: Identifier, ctx: WasmContext):
         var = ctx.find_var(node.name)
         if var == None:
             LOG.error(f"variable name {node.name} not found")
@@ -361,7 +369,8 @@ class WasmGenerator(Visitor):
             if var.temp or var.rpc:
                 return var.name
             else:
-                assert var.is_unwrapped()
+                # Not sure what this does
+                # assert var.is_unwrapped()
                 if isinstance(var.type, WasmBasicType):
                     return "*" + var.name
                 else:
@@ -384,13 +393,25 @@ class WasmGenerator(Visitor):
 
         type_def: str = node.name
         if type_def.startswith("Vec<"):
-            last = type_def[4:].split(">")[0].strip()
-            return WasmVecType("Vec", map_basic_type(last))
+            vec_type = type_def[4:].split(">")[0].strip()
+            # If the vector state requires strong consistency, we need to rely on an external storage
+            # Otherwise (local state or eventual consistent state), use a local vector
+            if node.consistency and node.consistency == "strong":
+                return WasmSyncVecType(map_basic_type(vec_type))
+            else:
+                return WasmVecType(map_basic_type(vec_type))
         elif type_def.startswith("Map<"):
-            middle = type_def[4:].split(">")[0]
-            key = middle.split(",")[0].strip()
-            value = middle.split(",")[1].strip()
-            return WasmMapType("HashMap", map_basic_type(key), map_basic_type(value))
+            temp = type_def[4:].split(">")[0]
+            key_type = temp.split(",")[0].strip()
+            value_type = temp.split(",")[1].strip()
+            # If the map state requires strong consistency, we need to rely on an external storage
+            # Otherwise (local state or eventual consistent state), use a local map
+            if node.consistency and node.consistency == "strong":
+                return WasmSyncStateType(
+                    map_basic_type(key_type), map_basic_type(value_type)
+                )
+            else:
+                return WasmMapType(map_basic_type(key_type), map_basic_type(value_type))
         else:
             return map_basic_type(type_def)
 
@@ -433,7 +454,7 @@ class WasmGenerator(Visitor):
         ret = fn.gen_call(args)
         return ret
 
-    def visitMethodCall(self, node: MethodCall, ctx) -> str:
+    def visitMethodCall(self, node: MethodCall, ctx: WasmContext) -> str:
         var = ctx.find_var(node.obj.name)
         if var == None:
             LOG.error(f"{node.obj.name} is not declared")
@@ -451,8 +472,11 @@ class WasmGenerator(Visitor):
             args = new_arg
         if ctx.current_procedure == FUNC_INIT:
             ret = var.name
+        elif var.consistency == "strong":
+            ret = ""
         else:
             ret = node.obj.accept(self, ctx)
+
         if var.rpc:
             match node.method:
                 case MethodType.GET:
@@ -496,7 +520,8 @@ class WasmGenerator(Visitor):
                         return Action::Pause;
                     """
         else:
-            return "return Action::Continue;"
+            # return "return Action::Continue;"
+            return ""
 
     def visitLiteral(self, node: Literal, ctx):
         return node.value.replace("'", '"')

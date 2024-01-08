@@ -133,7 +133,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
     stateful = False
     consistency = None
     combiner = "LWW"
-    persistence = "ephemeral"
+    persistence = False
 
     for element_name in element_names:
         LOG.info(f"(Property Analyzer) Parsing {element_name}")

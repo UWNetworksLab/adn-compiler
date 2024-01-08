@@ -57,10 +57,10 @@ class WasmBasicType(WasmType):
 
 
 class WasmVecType(WasmType):
-    def __init__(self, con: str, elem: WasmType) -> None:
-        super().__init__(f"{con}<{elem.name}>")
-        self.con = con
-        self.elem = elem
+    def __init__(self, elem_type: WasmType) -> None:
+        super().__init__(f"Vec<{elem_type.name}>")
+        self.con = "Vec"
+        self.elem_type = elem_type
 
     def gen_init(self) -> str:
         return f"{self.con}::new()"
@@ -84,11 +84,18 @@ class WasmVecType(WasmType):
         return f".len()"
 
 
+class WasmSyncVecType(WasmType):
+    # TODO: Implement sync vector type
+    def __init__(self, elem: WasmType) -> None:
+        self.con = "Vec"
+        self.elem = elem
+
+
 class WasmMapType(WasmType):
-    def __init__(self, con: str, key: WasmType, value: WasmType) -> None:
+    def __init__(self, key: WasmType, value: WasmType) -> None:
         # e.g., HashMap<String, String>
-        super().__init__(f"{con}<{key.name}, {value.name}>")
-        self.con = con
+        super().__init__(f"HashMap<{key.name}, {value.name}>")
+        self.con = "HashMap"
         self.key = key
         self.value = value
 
@@ -102,6 +109,47 @@ class WasmMapType(WasmType):
     def gen_set(self, args: List[str]) -> str:
         assert len(args) == 2
         return f".insert({args[0]}, {args[1]})"
+
+
+class WasmSyncStateType(WasmType):
+    # Sync State needs to call external storage to get the latest value.
+    def __init__(self, key: WasmType, value: WasmType) -> None:
+        self.key = key
+        self.value = value
+
+    def gen_get(self, args: List[str]) -> str:
+        assert len(args) == 1
+        return f"""self.dispatch_http_call(
+                        "webdis-service", // or your service name
+                        vec![
+                            (":method", "GET"),
+                            (":path", &format!("/GET/{{}}", {args[0]})),
+                            // (":path", "/GET/hello"),
+                            (":authority", "webdis-service"), // Replace with the appropriate authority if needed
+                        ],
+                        None,
+                        vec![],
+                        Duration::from_secs(5),
+                    )
+                    .unwrap();
+                    return Action::Pause"""
+
+    def gen_set(self, args: List[str]) -> str:
+        assert len(args) == 2
+        return f"""self.dispatch_http_call(
+                        "webdis-service", // or your service name
+                        vec![
+                            (":method", "GET"),
+                            (":path", &format!("/SET/{{}}/{{}}", {args[0]}, {args[1]})),
+                            // (":path", "/SET/redis/hello"),
+                            (":authority", "webdis-service"), // Replace with the appropriate authority if needed
+                        ],
+                        None,
+                        vec![],
+                        Duration::from_secs(5),
+                    )
+                    .unwrap();
+                    return Action::Pause;"""
 
 
 class WasmRpcType(WasmType):

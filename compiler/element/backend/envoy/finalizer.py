@@ -45,7 +45,7 @@ def codegen_from_template(output_dir, snippet, lib_name, proto_path):
     # Add the proto file to the generated code
     with open(f"{template_path}/build.rs", "r") as file:
         build_file = file.read()
-    proto = os.path.basename(proto_path).replace(".proto", "")
+    proto = os.path.basename(proto_path)
     build_file = build_file.replace("PROTO_FILENAME", proto)
     with open(f"{output_dir}/build.rs", "w") as file:
         file.write(build_file)
