@@ -242,7 +242,6 @@ class WasmGenerator(Visitor):
                 raise Exception(f"param {name} not found")
         for s in node.body:
             code = s.accept(self, ctx)
-            print(code)
             ctx.push_code(code)
 
         if ctx.current_procedure != FUNC_INIT:
@@ -261,9 +260,11 @@ class WasmGenerator(Visitor):
     def visitMatch(self, node: Match, ctx: WasmContext) -> str:
         template = "match ("
         if isinstance(node.expr, Identifier):
-            var = ctx.find_var(node.expr.name)
-            if var.type.name == "String":
-                template += node.expr.accept(self, ctx) + ".as_str()"
+            # TODO: Check type after we have type inference
+            template += node.expr.accept(self, ctx) + ".as_str()"
+            # var = ctx.find_var(node.expr.name)
+            # if var.type.name == "String":
+            #     template += node.expr.accept(self, ctx) + ".as_str()"
         else:
             template += node.expr.accept(self, ctx)
         template += ") {"
@@ -298,6 +299,9 @@ class WasmGenerator(Visitor):
             return f"{lhs} = {rhs};"
         else:
             if var == None:
+                # If var is none, it's a temparary variable.
+                # NOTE: This is a hacky way to handle temp variables. We assume that temp variables are always of type String.
+                # TODO(): Assign correct type to temp variable after we have type inference.
                 ctx.declare(node.left.name, WasmType("unknown"), True, False)
                 lhs = "let mut " + node.left.name
                 return f"{lhs} = {value};\n"
@@ -407,7 +411,7 @@ class WasmGenerator(Visitor):
             # If the map state requires strong consistency, we need to rely on an external storage
             # Otherwise (local state or eventual consistent state), use a local map
             if node.consistency and node.consistency == "strong":
-                return WasmSyncStateType(
+                return WasmSyncMapType(
                     map_basic_type(key_type), map_basic_type(value_type)
                 )
             else:

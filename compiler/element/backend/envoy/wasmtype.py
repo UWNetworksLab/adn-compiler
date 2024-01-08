@@ -111,7 +111,7 @@ class WasmMapType(WasmType):
         return f".insert({args[0]}, {args[1]})"
 
 
-class WasmSyncStateType(WasmType):
+class WasmSyncMapType(WasmType):
     # Sync State needs to call external storage to get the latest value.
     def __init__(self, key: WasmType, value: WasmType) -> None:
         self.key = key
