@@ -87,7 +87,6 @@ def gen_code(
     LOG.info(f"Generating {backend_name} code")
     # Do a pass to analyze the IR and generate the access operation
     consolidated.accept(CodeGenAnalyzer(placement), ctx)
-    print(ctx.access_ops)
     # Second pass to generate the code
     consolidated.accept(generator, ctx)
 

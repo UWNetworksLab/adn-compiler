@@ -62,6 +62,7 @@ class WasmContext:
 
     def gen_inners(self) -> str:
         ret = ""
+        # Generate inners based on operations
         for v in self.internal_states:
             if v.name in self.access_ops[self.current_func]:
                 if self.access_ops[self.current_func][v.name] == MethodType.GET:
@@ -70,10 +71,6 @@ class WasmContext:
                     ret = ret + f"let mut {v.name}_inner = {v.name}.write().unwrap();\n"
                 else:
                     raise Exception("unknown method in gen_inners.")
-
-            # print(v.name,self.current_func, self.access_ops[self.current_func])
-            # # print()
-
         return ret
 
     def clear_temps(self) -> None:
