@@ -4,7 +4,7 @@ use proxy_wasm::types::{{Action, LogLevel}};
 use proxy_wasm::traits::RootContext;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use prost::Message;
 use chrono::{{DateTime, Utc}};
 use std::mem;
