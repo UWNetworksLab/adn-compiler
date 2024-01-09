@@ -9,8 +9,8 @@ FUNC_RESP_HEADER = "resp_hdr"
 FUNC_RESP_BODY = "resp_body"
 
 
-class CodeGenAnalyzer(Visitor):
-    # CodeGenAnalyzer is used to analyze the IR and record the access operations.
+class AccessAnalyzer(Visitor):
+    # AccessAnalyzer is used to analyze the IR and record the access operations.
     # The operations are then used to avoid unnecessary locks and RPC decode when generating the corresponding WASM code.
     def __init__(self, placement: str):
         self.placement = placement
