@@ -4,7 +4,7 @@ use proxy_wasm::types::{{Action, LogLevel}};
 use proxy_wasm::traits::RootContext;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use prost::Message;
 use chrono::{{DateTime, Utc}};
 use std::mem;
@@ -23,7 +23,7 @@ pub fn _start() {{
     proxy_wasm::set_log_level(LogLevel::Trace);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {{ Box::new({FilterName}Root) }});
     proxy_wasm::set_http_context(|context_id, _| -> Box<dyn HttpContext> {{
-        Box::new({FilterName}Body {{ context_id, meta_status: "unknown".to_string() }})
+        Box::new({FilterName}Body {{ context_id, meta_status: "unknown".to_string(), method: "unknown".to_string() }})
     }});
  }}
 
@@ -47,6 +47,7 @@ struct {FilterName}Body {{
     #[allow(unused)]
     context_id: u32,
     meta_status: String,
+    method: String,
 }}
 
 impl Context for {FilterName}Body {{}}
@@ -57,6 +58,14 @@ impl HttpContext for {FilterName}Body {{
         // if !end_of_stream {{
         //     return Action::Continue;
         // }}
+
+        match self.get_http_request_header(":path") {{
+            Some(path)  => {{
+                self.method = path.rsplit('/').next().unwrap_or("").to_string();
+            }}
+            _ => log::warn!("No path header found!"),
+        }}
+
         {RequestHeaders}
         Action::Continue
     }}

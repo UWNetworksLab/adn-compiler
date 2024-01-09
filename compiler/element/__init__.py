@@ -2,6 +2,7 @@ import os
 from typing import Dict, List
 
 from compiler import root_base_dir
+from compiler.element.backend.analyzer import CodeGenAnalyzer
 from compiler.element.backend.envoy.finalizer import finalize as WasmFinalize
 from compiler.element.backend.envoy.wasmgen import WasmContext, WasmGenerator
 from compiler.element.backend.mrpc.finalizer import finalize as RustFinalize
@@ -84,6 +85,9 @@ def gen_code(
         consolidated = irs[0]
 
     LOG.info(f"Generating {backend_name} code")
+    # Do a pass to analyze the IR and generate the access operation
+    consolidated.accept(CodeGenAnalyzer(placement), ctx)
+    # Second pass to generate the code
     consolidated.accept(generator, ctx)
 
     finalize(output_name, ctx, output_dir, placement, proto_path)

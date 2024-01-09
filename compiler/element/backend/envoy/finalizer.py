@@ -44,7 +44,7 @@ def gen_template(_placement, output_dir, snippet, lib_name, proto_path):
     with open(f"{template_path}/build.rs", "r") as file:
         build_file = file.read()
     build_file = build_file.replace("PROTO_FILENAME", proto_path)
-    with open(f"{output_dir}/build.rs ", "w") as file:
+    with open(f"{output_dir}/build.rs", "w") as file:
         file.write(build_file)
 
     # TODO(XZ): copy the real proto files.

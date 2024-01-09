@@ -140,6 +140,21 @@ class WasmFunctionType(WasmType):
         return f"{self.name}({', '.join(args)})"
 
 
+class WasmRwLock(WasmType):
+    def __init__(self, inner: WasmType):
+        self.name = "RwLock"
+        self.inner = inner
+
+    def __str__(self) -> str:
+        return "RwLock<" + str(self.inner) + ">"
+
+    def gen_init(self) -> str:
+        return f"RwLock::new({self.inner.gen_init()})"
+
+    def gen_get(self) -> str:
+        return f""
+
+
 class WasmMutex(WasmType):
     def __init__(self, inner: WasmType):
         self.name = "Mutex"
