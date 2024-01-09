@@ -1,0 +1,12 @@
+state:
+    pass
+
+init:
+    pass
+
+req:
+  rpc_req.set('name', 'orange');
+  send(rpc_req, NET);
+
+resp:
+	send(rpc_resp, APP);

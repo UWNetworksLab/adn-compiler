@@ -1,0 +1,23 @@
+state: 
+    record: Map<string, Instant>
+    latency: Vec<float>
+    requst_count: int
+    response_count: int
+
+init:
+    pass;
+
+req:
+    request_count := request_count + 1;
+	record.set(rpc_req.get('name'), current_time());
+	send(rpc_req, NET);
+
+resp:
+    response_count := response_count + 1;
+    rpc_name := rpc_resp.get('name');
+    match(record.get(rpc_name)) 
+        Some(t) => 
+            lat := time_diff(current_time(), t);
+            latency.set(latency.size(), lat);
+        None => pass;
+    send(rpc_resp, APP);

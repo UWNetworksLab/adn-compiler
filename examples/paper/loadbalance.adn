@@ -1,0 +1,17 @@
+state: 
+    lb_tab: Map<string, string>
+
+init():
+    pass
+
+req:
+    match (lb_tab.get(rpc_req.get('name'))) 
+		Some(dst) => 
+			rpc_req.set('meta_dst', dst);
+		None => 
+	        idx := random(0, len(addrs));
+	        rpc_req.set('meta_dst', addrs.get(idx));
+	send(rpc_req, NET);
+
+resp:
+	send(rpc_resp, APP);

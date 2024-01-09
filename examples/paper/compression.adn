@@ -1,0 +1,14 @@
+state:
+    pass
+
+init:
+    pass
+
+req:
+	name := rpc_req.get('name');
+    compressed_name := compress(name);
+    rpc_req.set('name', compressed_name);
+    send(rpc_req, NET);
+
+fn resp(rpc_resp) 
+    send(rpc_resp, APP);

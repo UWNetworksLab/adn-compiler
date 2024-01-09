@@ -1,5 +1,6 @@
 internal
 {
+    @consistency(strong) @combiner(sum) @persistence(true)
 	acl: Map<string, string>
 }
 
@@ -9,8 +10,8 @@ fn init() {
 }
 
 fn req(rpc_req) {
-	result := acl.get(rpc_req.get('body'));
-	match (result) {
+    res := acl.get(rpc_req.get('body'));
+	match (res) {
 		Some(permission) => {
 			match (permission) {
 				'Yes' => {

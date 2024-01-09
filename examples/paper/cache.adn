@@ -1,0 +1,14 @@
+state:
+	cache: Map<string, RPC_RESP> 
+
+init():
+    pass
+
+req
+	match(cache.get(rpc_req.get('key'))) 
+		Some(resp) => send(resp, APP);
+		None => send(rpc_req, NET);
+
+resp
+	cache.set(rpc_resp.get('key'), rpc_resp);
+	send(rpc_resp, APP);

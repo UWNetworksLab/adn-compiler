@@ -1,0 +1,13 @@
+state:
+	abort_probability: float
+
+init(abort_probability):
+	abort_probability := abort_probability;
+
+req:
+	match(randomf(0,1) < prob) 
+		true => send(rpc_req, NET);
+		false => send(err('fault_injected'), APP);
+
+resp:
+    send(rpc_resp, APP);

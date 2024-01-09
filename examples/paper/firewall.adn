@@ -1,0 +1,19 @@
+state:
+	acl: Map<string, string>
+
+init:
+	acl.set('Apple', 'Yes');
+	acl.set('Banana', 'No');
+
+req:
+	match (acl.get(rpc_req.get('name'))) 
+		Some(permission) => 
+			match (permission) 
+				'Yes' => send(rpc_req, NET);
+				'No' => send(err('acl'), APP);
+				 _ => send(err('acl'), APP);
+		None =>
+			send(err('acl'), APP);
+
+resp:
+    send(rpc_resp, APP);	

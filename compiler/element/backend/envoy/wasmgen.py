@@ -5,11 +5,11 @@ from compiler.element.logger import ELEMENT_LOG as LOG
 from compiler.element.node import *
 from compiler.element.visitor import Visitor
 
+FUNC_INIT = "init"
 FUNC_REQ_HEADER = "req_hdr"
 FUNC_REQ_BODY = "req_body"
 FUNC_RESP_HEADER = "resp_hdr"
 FUNC_RESP_BODY = "resp_body"
-FUNC_INIT = "init"
 FUNC_EXTERNAL_RESPONSE = "external_response"
 
 
@@ -37,6 +37,15 @@ class WasmContext:
         self.decode: bool = True  # Flag to determine whether to decode the RPC
         self.proto: str = proto  # Protobuf used
         self.method_name: str = method_name  # Name of the RPC method
+
+        # Maps to store the state (incl. RPC) operations on request/response headers and bodies
+        self.access_ops: Dict[str, Dict[str, MethodType]] = {
+            FUNC_INIT: {},
+            FUNC_REQ_HEADER: {},
+            FUNC_REQ_BODY: {},
+            FUNC_RESP_HEADER: {},
+            FUNC_RESP_BODY: {},
+        }
 
     def declare(
         self,
@@ -87,9 +96,22 @@ class WasmContext:
 
     def gen_inners(self) -> str:
         ret = ""
+        # Generate inners based on operations
         for v in self.internal_states:
             if v.consistency != "strong":
-                ret = ret + f"let mut {v.name}_inner = {v.name}.lock().unwrap();\n"
+                if v.name in self.access_ops[self.current_func]:
+                    if self.access_ops[self.current_func][v.name] == MethodType.GET:
+                        ret = (
+                            ret
+                            + f"let mut {v.name}_inner = {v.name}.read().unwrap();\n"
+                        )
+                    elif self.access_ops[self.current_func][v.name] == MethodType.SET:
+                        ret = (
+                            ret
+                            + f"let mut {v.name}_inner = {v.name}.write().unwrap();\n"
+                        )
+                    else:
+                        raise Exception("unknown method in gen_inners.")
         return ret
 
     def clear_temps(self) -> None:
@@ -132,7 +154,7 @@ class WasmContext:
         for v in self.internal_states:
             if v.consistency == "strong":
                 continue
-            wrapped = WasmMutex(v.type)
+            wrapped = WasmRwLock(v.type)
             ret = (
                 ret
                 + f"""
@@ -218,13 +240,14 @@ class WasmGenerator(Visitor):
         inners = ctx.gen_inners()
         ctx.push_code(inners)
 
-        prefix = f"""
+        # Boilerplate code for decoding the RPC message
+        prefix_decode_rpc = f"""
         if let Some(body) = self.get_http_{name}_body(0, body_size) {{
 
             match {ctx.proto}::{ctx.method_name}{procedure_type}::decode(&body[5..]) {{
                 Ok(mut rpc_{name}) => {{
         """
-        suffix = f"""
+        suffix_decode_rpc = f"""
                         }}
                 Err(e) => log::warn!("decode error: {{}}", e),
             }}
@@ -232,8 +255,14 @@ class WasmGenerator(Visitor):
 
         """
 
-        if ctx.current_procedure != FUNC_INIT:
-            ctx.push_code(prefix)
+        # If the procedure does not access the RPC message, then we do not need to decode it
+        if ctx.current_func != FUNC_INIT:
+            if ctx.current_func == FUNC_REQ_BODY:
+                if "rpc_req" in ctx.access_ops[ctx.current_func]:
+                    ctx.push_code(prefix_decode_rpc)
+            elif ctx.current_func == FUNC_RESP_BODY:
+                if "rpc_resp" in ctx.access_ops[ctx.current_func]:
+                    ctx.push_code(prefix_decode_rpc)
 
         for p in node.params:
             name = p.name
@@ -244,8 +273,13 @@ class WasmGenerator(Visitor):
             code = s.accept(self, ctx)
             ctx.push_code(code)
 
-        if ctx.current_procedure != FUNC_INIT:
-            ctx.push_code(suffix)
+        if ctx.current_func != FUNC_INIT:
+            if ctx.current_func == FUNC_REQ_BODY:
+                if "rpc_req" in ctx.access_ops[ctx.current_func]:
+                    ctx.push_code(suffix_decode_rpc)
+            elif ctx.current_func == FUNC_RESP_BODY:
+                if "rpc_resp" in ctx.access_ops[ctx.current_func]:
+                    ctx.push_code(suffix_decode_rpc)
 
     def visitStatement(self, node: Statement, ctx: WasmContext) -> str:
         if node.stmt == None:
