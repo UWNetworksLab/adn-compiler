@@ -508,10 +508,13 @@ class WasmGenerator(Visitor):
                 else:
                     new_arg.append(i)
             args = new_arg
-        if ctx.current_procedure == FUNC_INIT:
-            ret = var.name
-        elif var.consistency == "strong":
+        if var.consistency == "strong":
+            # For strong-consistent variables, we use "self.dispatch_http_call"
+            # to interact with the external storage, and thus the variable name
+            # shouldn't appear.
             ret = ""
+        elif ctx.current_procedure == FUNC_INIT:
+            ret = var.name
         else:
             ret = node.obj.accept(self, ctx)
 
