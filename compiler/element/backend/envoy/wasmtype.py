@@ -4,6 +4,7 @@ import copy
 from enum import Enum
 from typing import List, Optional
 
+from compiler.element.backend.envoy import *
 from compiler.element.logger import ELEMENT_LOG as LOG
 
 
@@ -26,7 +27,7 @@ class WasmType:
     def gen_get(self, args):
         raise NotImplementedError
 
-    def gen_set(self, args):
+    def gen_set(self, args, current_procedure):
         raise NotImplementedError
 
     def gen_delete(self, args):
@@ -69,7 +70,7 @@ class WasmVecType(WasmType):
         assert len(args) == 1
         return f".get({args[0]})"
 
-    def gen_set(self, args: List[str]) -> str:
+    def gen_set(self, args: List[str], current_procedure: str) -> str:
         assert len(args) == 2
         if args[0].endswith(".len()"):
             return f".push({args[1]})"
@@ -106,7 +107,7 @@ class WasmMapType(WasmType):
         assert len(args) == 1
         return f".get(&{args[0]})"
 
-    def gen_set(self, args: List[str]) -> str:
+    def gen_set(self, args: List[str], current_procedure: str) -> str:
         assert len(args) == 2
         return f".insert({args[0]}, {args[1]})"
 
@@ -134,9 +135,15 @@ class WasmSyncMapType(WasmType):
                     .unwrap();
                     return Action::Pause"""
 
-    def gen_set(self, args: List[str]) -> str:
+    def gen_set(self, args: List[str], current_procedure: str) -> str:
         assert len(args) == 2
-        return f"""self.dispatch_http_call(
+        return_stmt = (
+            ""
+            if current_procedure in [FUNC_INIT, FUNC_EXTERNAL_RESPONSE]
+            else "return Action::Pause;"
+        )
+        return (
+            f"""self.dispatch_http_call(
                         "webdis-service", // or your service name
                         vec![
                             (":method", "GET"),
@@ -149,7 +156,9 @@ class WasmSyncMapType(WasmType):
                         Duration::from_secs(5),
                     )
                     .unwrap();
-                    return Action::Pause;"""
+                    """
+            + return_stmt
+        )
 
 
 class WasmRpcType(WasmType):

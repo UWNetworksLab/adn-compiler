@@ -1,16 +1,10 @@
 from typing import Dict, List, Optional
 
+from compiler.element.backend.envoy import *
 from compiler.element.backend.envoy.wasmtype import *
 from compiler.element.logger import ELEMENT_LOG as LOG
 from compiler.element.node import *
 from compiler.element.visitor import Visitor
-
-FUNC_INIT = "init"
-FUNC_REQ_HEADER = "req_hdr"
-FUNC_REQ_BODY = "req_body"
-FUNC_RESP_HEADER = "resp_hdr"
-FUNC_RESP_BODY = "resp_body"
-FUNC_EXTERNAL_RESPONSE = "external_response"
 
 
 class WasmContext:
@@ -99,13 +93,14 @@ class WasmContext:
         # Generate inners based on operations
         for v in self.internal_states:
             if v.consistency != "strong":
-                if v.name in self.access_ops[self.current_func]:
-                    if self.access_ops[self.current_func][v.name] == MethodType.GET:
+                if v.name in self.access_ops[self.current_procedure]:
+                    access_type = self.access_ops[self.current_procedure][v.name]
+                    if access_type == MethodType.GET:
                         ret = (
                             ret
                             + f"let mut {v.name}_inner = {v.name}.read().unwrap();\n"
                         )
-                    elif self.access_ops[self.current_func][v.name] == MethodType.SET:
+                    elif access_type == MethodType.SET:
                         ret = (
                             ret
                             + f"let mut {v.name}_inner = {v.name}.write().unwrap();\n"
@@ -256,12 +251,12 @@ class WasmGenerator(Visitor):
         """
 
         # If the procedure does not access the RPC message, then we do not need to decode it
-        if ctx.current_func != FUNC_INIT:
-            if ctx.current_func == FUNC_REQ_BODY:
-                if "rpc_req" in ctx.access_ops[ctx.current_func]:
+        if ctx.current_procedure != FUNC_INIT:
+            if ctx.current_procedure == FUNC_REQ_BODY:
+                if "rpc_req" in ctx.access_ops[ctx.current_procedure]:
                     ctx.push_code(prefix_decode_rpc)
-            elif ctx.current_func == FUNC_RESP_BODY:
-                if "rpc_resp" in ctx.access_ops[ctx.current_func]:
+            elif ctx.current_procedure == FUNC_RESP_BODY:
+                if "rpc_resp" in ctx.access_ops[ctx.current_procedure]:
                     ctx.push_code(prefix_decode_rpc)
 
         for p in node.params:
@@ -270,15 +265,20 @@ class WasmGenerator(Visitor):
                 LOG.error(f"param {name} not found in VisitProcedure")
                 raise Exception(f"param {name} not found")
         for s in node.body:
+            # Only the contents in match(strong.xxx) will be sent to on_http_call_response()
+            # Therefore, we should keep a copy of the original procedure and recover it after
+            # finishing code generation of each statement.
+            current_procedure = ctx.current_procedure
             code = s.accept(self, ctx)
             ctx.push_code(code)
+            ctx.current_procedure = current_procedure
 
-        if ctx.current_func != FUNC_INIT:
-            if ctx.current_func == FUNC_REQ_BODY:
-                if "rpc_req" in ctx.access_ops[ctx.current_func]:
+        if ctx.current_procedure != FUNC_INIT:
+            if ctx.current_procedure == FUNC_REQ_BODY:
+                if "rpc_req" in ctx.access_ops[ctx.current_procedure]:
                     ctx.push_code(suffix_decode_rpc)
-            elif ctx.current_func == FUNC_RESP_BODY:
-                if "rpc_resp" in ctx.access_ops[ctx.current_func]:
+            elif ctx.current_procedure == FUNC_RESP_BODY:
+                if "rpc_resp" in ctx.access_ops[ctx.current_procedure]:
                     ctx.push_code(suffix_decode_rpc)
 
     def visitStatement(self, node: Statement, ctx: WasmContext) -> str:
@@ -293,9 +293,29 @@ class WasmGenerator(Visitor):
 
     def visitMatch(self, node: Match, ctx: WasmContext) -> str:
         template = "match ("
+        # TODO: to parse the content of a strong consistent GET result, for now
+        # we require users to explicitly use a temporary variable to store the
+        # result of `.get()` operation and then apply `match` on that variable,
+        # i.e., the code
+        #     match(state.get(...))
+        # should be rewritten as
+        #     res = state.get(...);
+        #     match(res)
+        # The second style is more convenient for the compiler to decide the right
+        # point to switch to the `on_http_call_response()` method. In the future,
+        # we may support the more consise version.
+
+        # For each match(Identifier) expression, we need to addtionally check
+        # whether it's parsing a strong consistent GET result.
+        strong_match = False
         if isinstance(node.expr, Identifier):
             # TODO: Check type after we have type inference
             template += node.expr.accept(self, ctx) + ".as_str()"
+            var = ctx.find_var(node.expr.name)
+            if var.consistency == "strong":
+                strong_match = True
+                # switch to on_http_call_response()
+                ctx.current_procedure = FUNC_EXTERNAL_RESPONSE
             # var = ctx.find_var(node.expr.name)
             # if var.type.name == "String":
             #     template += node.expr.accept(self, ctx) + ".as_str()"
@@ -309,6 +329,26 @@ class WasmGenerator(Visitor):
             leg += "}"
             template += leg
         template += "}"
+
+        if strong_match:
+            # For match block in on_http_call_response(), additional wrapper
+            # code should be applied.
+            match_wrapper_prefix = """
+            match serde_json::from_str::<Value>(body_str) {
+                Ok(json) => {
+                    match json.get("GET") {
+                        Some(get) if !get.is_null() => {
+            """
+            match_wrapper_suffix = """
+                        },
+                        _ => {},
+                    }
+                },
+                Err(_) => log::warn!("Response body: [Invalid JSON data]"),
+            }
+            """
+            template = match_wrapper_prefix + template + match_wrapper_suffix
+
         return template
 
     def visitAssign(self, node: Assign, ctx: WasmContext) -> str:
@@ -336,7 +376,19 @@ class WasmGenerator(Visitor):
                 # If var is none, it's a temparary variable.
                 # NOTE: This is a hacky way to handle temp variables. We assume that temp variables are always of type String.
                 # TODO(): Assign correct type to temp variable after we have type inference.
-                ctx.declare(node.left.name, WasmType("unknown"), True, False)
+                # currently, we only inspect whether this temp variable holds a strong-consistent result.
+                consistency = None
+                if isinstance(node.right, MethodCall):
+                    var = ctx.find_var(node.right.obj.name)
+                    if var.consistency == "strong":
+                        consistency = "strong"
+                ctx.declare(
+                    node.left.name,
+                    WasmType("unknown"),
+                    True,
+                    False,
+                    consistency=consistency,
+                )
                 lhs = "let mut " + node.left.name
                 return f"{lhs} = {value};\n"
             else:
@@ -537,7 +589,7 @@ class WasmGenerator(Visitor):
                 case MethodType.GET:
                     ret += t.gen_get(args)
                 case MethodType.SET:
-                    ret += t.gen_set(args)
+                    ret += t.gen_set(args, ctx.current_procedure)
                 case MethodType.DELETE:
                     ret += t.gen_delete(args)
                 case MethodType.SIZE:
@@ -550,7 +602,15 @@ class WasmGenerator(Visitor):
         # TODO: currently do not support doing things after send!
         # TODO: The status code should be configurable
         if isinstance(node.msg, Error):
-            return """
+            # For Send statement in on_http_call_response(), the return type
+            # should be ()
+            return_stmt = (
+                ""
+                if ctx.current_procedure == FUNC_EXTERNAL_RESPONSE
+                else "return Action::Pause;"
+            )
+            return (
+                """
                         self.send_http_response(
                             403,
                             vec![
@@ -558,8 +618,9 @@ class WasmGenerator(Visitor):
                             ],
                             None,
                         );
-                        return Action::Pause;
                     """
+                + return_stmt
+            )
         else:
             # return "return Action::Continue;"
             return ""
