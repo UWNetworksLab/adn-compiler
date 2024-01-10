@@ -107,7 +107,7 @@ class PersistenceDecorator(Node):
 
 
 class Error(Node):
-    def __init__(self, msg: str):
+    def __init__(self, msg: Literal):
         self.msg = msg
 
 
@@ -141,7 +141,14 @@ class Type(Node):
 class Literal(Node):
     def __init__(self, value: str):
         self.value = value
-        self.type = DataType.NONE
+        # TODO: complete type inference for Literal
+        # currently only String and Bool are supported.
+        if value.startswith("'") and value.endswith("'"):
+            self.type = DataType.STR
+        elif value in ["True", "False"]:
+            self.type = DataType.BOOL
+        else:
+            self.type = DataType.NONE
 
 
 class Start(Node):

@@ -24,10 +24,10 @@ class WasmType:
     def gen_init(self) -> str:
         raise NotImplementedError
 
-    def gen_get(self, args):
+    def gen_get(self, args, ename):
         raise NotImplementedError
 
-    def gen_set(self, args, current_procedure):
+    def gen_set(self, args, ename, current_procedure):
         raise NotImplementedError
 
     def gen_delete(self, args):
@@ -66,7 +66,7 @@ class WasmVecType(WasmType):
     def gen_init(self) -> str:
         return f"{self.con}::new()"
 
-    def gen_get(self, args: List[str]) -> str:
+    def gen_get(self, args: List[str], ename: str) -> str:
         assert len(args) == 1
         return f".get({args[0]})"
 
@@ -103,11 +103,11 @@ class WasmMapType(WasmType):
     def gen_init(self) -> str:
         return f"{self.con}::new()"
 
-    def gen_get(self, args: List[str]) -> str:
+    def gen_get(self, args: List[str], ename: str) -> str:
         assert len(args) == 1
         return f".get(&{args[0]})"
 
-    def gen_set(self, args: List[str], current_procedure: str) -> str:
+    def gen_set(self, args: List[str], ename: str, current_procedure: str) -> str:
         assert len(args) == 2
         return f".insert({args[0]}, {args[1]})"
 
@@ -118,15 +118,15 @@ class WasmSyncMapType(WasmType):
         self.key = key
         self.value = value
 
-    def gen_get(self, args: List[str]) -> str:
+    def gen_get(self, args: List[str], ename: str) -> str:
         assert len(args) == 1
         return f"""self.dispatch_http_call(
-                        "webdis-service", // or your service name
+                        "webdis-service-{ename}", // or your service name
                         vec![
                             (":method", "GET"),
                             (":path", &format!("/GET/{{}}", {args[0]})),
                             // (":path", "/GET/hello"),
-                            (":authority", "webdis-service"), // Replace with the appropriate authority if needed
+                            (":authority", "webdis-service-{ename}"), // Replace with the appropriate authority if needed
                         ],
                         None,
                         vec![],
@@ -135,7 +135,7 @@ class WasmSyncMapType(WasmType):
                     .unwrap();
                     return Action::Pause"""
 
-    def gen_set(self, args: List[str], current_procedure: str) -> str:
+    def gen_set(self, args: List[str], ename: str, current_procedure: str) -> str:
         assert len(args) == 2
         return_stmt = (
             ""
@@ -144,12 +144,12 @@ class WasmSyncMapType(WasmType):
         )
         return (
             f"""self.dispatch_http_call(
-                        "webdis-service", // or your service name
+                        "webdis-service-{ename}", // or your service name
                         vec![
                             (":method", "GET"),
                             (":path", &format!("/SET/{{}}/{{}}", {args[0]}, {args[1]})),
                             // (":path", "/SET/redis/hello"),
-                            (":authority", "webdis-service"), // Replace with the appropriate authority if needed
+                            (":authority", "webdis-service-{ename}"), // Replace with the appropriate authority if needed
                         ],
                         None,
                         vec![],
@@ -166,7 +166,7 @@ class WasmRpcType(WasmType):
         super().__init__(name)
         self.fields = fields
 
-    def gen_get(self, args: List[str]) -> str:
+    def gen_get(self, args: List[str], ename: str) -> str:
         assert len(args) == 1
         return "." + args[0].strip('"')
 
