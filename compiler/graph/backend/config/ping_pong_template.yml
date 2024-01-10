@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: frontend
+      labels:
+        app: frontend
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      nodeName: h2.xzhu-185581.meshbench-pg0.clemson.cloudlab.us # Change Placement if needed
+      containers:
+      - name: frontend
+        image: xzhu0027/ping_pong_app
+        command: ["/app/ping-pong"]  # Command to run within the container
+        args: ["frontend"]
+  selector:
+    matchLabels:
+      app: frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ping
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: ping
+      labels:
+        app: ping
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      nodeName: h3.xzhu-185581.meshbench-pg0.clemson.cloudlab.us # Change Placement if needed
+      containers:
+      - name: ping
+        image: xzhu0027/ping_pong_app
+        command: ["/app/ping-pong"]  # Command to run within the container
+        args: ["ping"]
+  selector:
+    matchLabels:
+      app: ping
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pong
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: pong
+      labels:
+        app: pong
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      nodeName: h3.xzhu-185581.meshbench-pg0.clemson.cloudlab.us # Change Placement if needed
+      containers:
+      - name: pong
+        image: xzhu0027/ping_pong_app
+        command: ["/app/ping-pong"]  # Command to run within the container
+        args: ["pong"]
+  selector:
+    matchLabels:
+      app: pong

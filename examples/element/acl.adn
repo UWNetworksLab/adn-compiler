@@ -9,7 +9,8 @@ fn init() {
 }
 
 fn req(rpc_req) {
-	match (acl.get(rpc_req.get('name'))) {
+	result := acl.get(rpc_req.get('body'));
+	match (result) {
 		Some(permission) => {
 			match (permission) {
 				'Yes' => {

@@ -23,10 +23,12 @@ def retrieve(ctx: WasmContext, name: str) -> Dict:
         "RequestBody": "".join(ctx.req_body_code),
         "ResponseHeaders": "".join(ctx.resp_hdr_code),
         "ResponseBody": "".join(ctx.resp_body_code),
+        "ExternalCallResponse": "".join(ctx.external_call_response_code),
     }
 
 
-def gen_template(_placement, output_dir, snippet, lib_name, proto_path):
+def codegen_from_template(output_dir, snippet, lib_name, proto_path):
+    # This method generates the backend code from the template
     os.system(f"rm -rf {output_dir}")
     os.system(f"mkdir -p {output_dir}")
     os.system(f"mkdir -p {output_dir}/src")
@@ -43,13 +45,12 @@ def gen_template(_placement, output_dir, snippet, lib_name, proto_path):
     # Add the proto file to the generated code
     with open(f"{template_path}/build.rs", "r") as file:
         build_file = file.read()
-    build_file = build_file.replace("PROTO_FILENAME", proto_path)
+    proto = os.path.basename(proto_path)
+    build_file = build_file.replace("PROTO_FILENAME", proto)
     with open(f"{output_dir}/build.rs", "w") as file:
         file.write(build_file)
 
-    # TODO(XZ): copy the real proto files.
-    os.system(f"cp {template_path}/ping.proto {output_dir}")
-    os.system(f"cp {template_path}/pong.proto {output_dir}")
+    os.system(f"cp {proto_path} {output_dir}")
     os.system(f"cp {template_path}/rust-toolchain.toml {output_dir}")
 
     os.system(f"rustfmt --edition 2018  {output_dir}/src/lib.rs")
@@ -63,4 +64,4 @@ def finalize(
     name: str, ctx: WasmContext, output_dir: str, placement: str, proto_path: str
 ):
     snippet = retrieve(ctx, name)
-    gen_template(placement, output_dir, snippet, name, proto_path)
+    codegen_from_template(output_dir, snippet, name, proto_path)

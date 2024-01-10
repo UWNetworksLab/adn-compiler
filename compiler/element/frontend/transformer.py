@@ -37,13 +37,15 @@ class IRTransformer(Transformer):
         decorators = [ConsistencyDecorator, CombinerDecorator, PersistenceDecorator]
 
         # Iterate over decorators and update result accordingly
-        for i, decorator in enumerate(decorators):
+        for decorator in decorators:
             decorator_idx = find_type_index(d, decorator)
             if decorator_idx != -1:
                 result.append(decorator(d[decorator_idx].name))
             else:
                 result.append(decorator("None"))
 
+        # Reinitilize the Type to add decorator information
+        result[1] = Type(result[1].name, result[2].name, result[3].name, result[4].name)
         return tuple(result)
 
     def consistency_decorator(self, d) -> ConsistencyDecorator:
@@ -63,27 +65,16 @@ class IRTransformer(Transformer):
         return Identifier(i)
 
     def type_(self, t):
-        return Type(t[0].name)
+        return Type(t[0].name, None, None, False)
 
     def vec_type(self, t) -> Type:
-        return Type(f"Vec<{t[0].name}>")
+        return Type(f"Vec<{t[0].name}>", None, None, False)
 
     def map_type(self, t) -> Type:
-        return Type(f"Map<{t[0].name}, {t[1].name}>")
+        return Type(f"Map<{t[0].name}, {t[1].name}>", None, None, False)
 
     def single_type(self, d) -> Type:
-        return Type(d[0])
-        # match d:
-        #     case "int":
-        #         return DataType.INT
-        #     case "string":
-        #         return DataType.STR
-        #     case "bool":
-        #         return DataType.BOOL
-        #     case "float":
-        #         return DataType.FLOAT
-        #     case _:
-        #         raise Exception("Unknown data type: " + d)
+        return Type(d[0], None, None, False)
 
     def procedure(self, p) -> Procedure:
         return Procedure(p[0], p[1], p[2])
@@ -171,6 +162,8 @@ class IRTransformer(Transformer):
         c = c[0]
         return Literal(c)
 
+    # TODO: remove this function as err(xxx) will be recognized as a function
+    # and handled in def func().
     def err(self, e) -> Error:
         e = e[0]
         return Error(e)
@@ -235,3 +228,9 @@ class IRTransformer(Transformer):
 
     def CNAME(self, c):
         return c.value
+
+    def true(self, _):
+        return True
+
+    def false(self, _):
+        return False

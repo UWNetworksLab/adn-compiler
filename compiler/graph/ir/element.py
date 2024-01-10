@@ -25,8 +25,10 @@ class AbsElement:
         else:
             self.id = fetch_global_id()
             self.name: List[str] = [info["name"]]
-            self.config = info["config"]
-            self.position = info["position"]
+            self.config = info["config"] if "config" in info else []
+            self.position = info["position"] if "position" in info else "C/S"
+            self.proto = info["proto"]
+            self.method = info["method"]
 
     @property
     def desc(self) -> str:

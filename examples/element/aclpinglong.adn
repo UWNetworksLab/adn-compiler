@@ -1,0 +1,35 @@
+internal
+{
+	acl: Map<string, string>
+}
+
+fn init() {
+	acl.set('appleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleappleapple', 'Yes');
+	acl.set('orangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeorangeoran', 'Yes');
+	acl.set('apple', 'Yes');
+	acl.set('orang', 'Yes');
+}
+
+fn req(rpc_req) {
+	match (acl.get(rpc_req.get('body'))) {
+		Some(permission) => {
+			match (permission) {
+				'Yes' => {
+					send(rpc_req, NET);
+				}
+				'No' => {
+					send(err('acl'), APP);
+				}
+				_ => {
+				}
+			};
+		}
+		None => {
+			send(err('acl'), APP);
+		}
+	}; 
+}
+
+fn resp(rpc_resp) {
+    send(rpc_resp, APP);	
+}

@@ -32,7 +32,7 @@ if __name__ == "__main__":
         "-r",
         "--proto",
         type=str,
-        help="Filename of the Protobuf definition",
+        help="Filename of the Protobuf definition (e.g., hello.proto)",
         required=True,
     )
 
@@ -55,13 +55,13 @@ if __name__ == "__main__":
     placement = args.placement
     proto_path = args.proto
     method_name = args.method_name
-    LOG.info(f"Elements: {elements}, Backend: {backend}")
-    if placement == "c":
+    if placement == "c" or placement == "client":
         placement = "client"
-    elif placement == "s":
+    elif placement == "s" or placement == "server":
         placement = "server"
     else:
         raise Exception("invalid Placement, c/s expected")
+    LOG.info(f"Elements: {elements}, Backend: {backend}, Placement: {placement}")
 
     # Generate the element properties.
     start = datetime.datetime.now()
@@ -71,7 +71,9 @@ if __name__ == "__main__":
     LOG.info(f"Property Analysis took: {(end-start).microseconds/1000}ms")
 
     # Generate real element code
-    output_name = "gen" + "".join(elements) + placement.lower()
+    output_name = (
+        "Gen" + "".join(elements).capitalize() + placement.lower().capitalize()
+    )
     ret = gen_code(
         elements,
         output_name,

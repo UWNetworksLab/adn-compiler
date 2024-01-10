@@ -48,12 +48,6 @@ class GraphIR:
             "res_client": [],
             "res_server": [],
         }
-        # Fill in default fields
-        for element in chain:
-            if "position" not in element:
-                element["position"] = "C/S"
-            if "config" not in element:
-                element["config"] = []
         # determine an initial client-server boundary
         # principle:
         # - valid ("C" goes to client, "S" goes to server)

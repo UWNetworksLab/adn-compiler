@@ -12,7 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.absolute()))
 sys.path.append(str(Path(__file__).parent.absolute()))
 os.environ["PHOENIX_DIR"] = os.path.join(os.getenv("HOME"), "phoenix")
 
-from compiler import graph_base_dir
+from compiler import compiler_base_dir, graph_base_dir
 from compiler.element import gen_code
 from compiler.graph.backend import scriptgen
 from compiler.graph.frontend import GCParser
@@ -24,14 +24,22 @@ console = Console()
 gir_summary = dict()
 
 
-def compile_impl(engine_name: List[str], gen_dir: str, backend: str, placement: str):
+def compile_impl(
+    engine_name: List[str],
+    gen_dir: str,
+    backend: str,
+    placement: str,
+    proto: str,
+    method: str,
+):
     gen_name = "".join(engine_name)
     if backend == "mrpc":
         gen_dir = os.path.join(gen_dir, f"{gen_name}_{placement}_{backend}")
     else:
         gen_dir = os.path.join(gen_dir, f"{gen_name}_{backend}")
+    proto = os.path.join(compiler_base_dir, "../examples/proto", proto)
     os.system(f"mkdir -p {gen_dir}")
-    gen_code(engine_name, gen_name, gen_dir, backend, placement)
+    gen_code(engine_name, gen_name, gen_dir, backend, placement, proto, method)
 
 
 def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
@@ -54,6 +62,9 @@ def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
                         gen_dir,
                         args.backend,
                         placement,
+                        # os.path.join(compiler_base_dir, "element/backend", args.backend, "templates", element.proto),
+                        element.proto,
+                        element.method,
                     )
                 compiled_name.add(identifier)
 
@@ -165,10 +176,17 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
     )
+    parser.add_argument(
+        "--replica",
+        type=str,
+        help="#replica for each service",
+        default="1",
+    )
     parser.add_argument("--debug", help="Print debug info", action="store_true")
     args = parser.parse_args()
     init_logging(args.debug)
 
+    os.environ["SERVICE_REPLICA"] = args.replica
     if args.dry_run:
         os.environ["DRY_RUN"] = "1"
 

@@ -4,6 +4,8 @@ use proxy_wasm::types::{{Action, LogLevel}};
 use proxy_wasm::traits::RootContext;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use serde_json::Value;
+use std::time::Duration;
 use std::sync::RwLock;
 use prost::Message;
 use chrono::{{DateTime, Utc}};
@@ -50,10 +52,21 @@ struct {FilterName}Body {{
     method: String,
 }}
 
-impl Context for {FilterName}Body {{}}
+impl Context for {FilterName}Body {{
+    fn on_http_call_response(&mut self, _: u32, _: usize, body_size: usize, _: usize) {{
+        if let Some(body) = self.get_http_call_response_body(0, body_size) {{
+            if let Ok(body_str) = std::str::from_utf8(&body) {{
+                {ExternalCallResponse}
+            }} else {{
+                log::warn!("Response body: [Non-UTF8 data]");
+            }}
+            self.resume_http_request();
+        }}
+    }}
+}}
 
 impl HttpContext for {FilterName}Body {{
-    fn on_http_request_headers(&mut self, _num_of_headers: usize, end_of_stream: bool) -> Action {{
+    fn on_http_request_headers(&mut self, _num_of_headers: usize, _end_of_stream: bool) -> Action {{
         log::warn!("executing on_http_request_headers generated");
         // if !end_of_stream {{
         //     return Action::Continue;
@@ -70,7 +83,7 @@ impl HttpContext for {FilterName}Body {{
         Action::Continue
     }}
 
-    fn on_http_request_body(&mut self, body_size: usize, end_of_stream: bool) -> Action {{
+    fn on_http_request_body(&mut self, body_size: usize, _end_of_stream: bool) -> Action {{
         log::warn!("executing on_http_request_body generated");
         // if !end_of_stream {{
         //    return Action::Pause;
@@ -79,7 +92,7 @@ impl HttpContext for {FilterName}Body {{
         Action::Continue
     }}
 
-    fn on_http_response_headers(&mut self, _num_headers: usize, end_of_stream: bool) -> Action {{
+    fn on_http_response_headers(&mut self, _num_headers: usize, _end_of_stream: bool) -> Action {{
         log::warn!("executing on_http_response_headers generated");
         // if !end_of_stream {{
         //    return Action::Continue;
@@ -88,7 +101,7 @@ impl HttpContext for {FilterName}Body {{
         Action::Continue
     }}
 
-    fn on_http_response_body(&mut self, body_size: usize, end_of_stream: bool) -> Action {{
+    fn on_http_response_body(&mut self, body_size: usize, _end_of_stream: bool) -> Action {{
         log::warn!("executing on_http_response_body generated");
         // if !end_of_stream {{
         //    return Action::Pause;
@@ -117,6 +130,7 @@ log = "0.4"
 prost = "0.11.0"
 proxy-wasm = "0.2.0"
 lazy_static = "1.4.0"
+serde_json = "1.0"
 rand = "0.7.0"
 getrandom = {{ version = "0.2", features = ["js"] }}
 chrono = {{ version = "0.4", default-features = false, features = ["clock", "std"] }}
