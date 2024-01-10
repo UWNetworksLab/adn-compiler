@@ -8,7 +8,7 @@ from compiler.element.visitor import Visitor
 
 
 class WasmContext:
-    def __init__(self, proto=None, method_name=None) -> None:
+    def __init__(self, proto=None, method_name=None, element_name: str = "") -> None:
         self.internal_states: List[
             WasmVariable
         ] = []  # List of internal state variables
@@ -31,6 +31,7 @@ class WasmContext:
         self.decode: bool = True  # Flag to determine whether to decode the RPC
         self.proto: str = proto  # Protobuf used
         self.method_name: str = method_name  # Name of the RPC method
+        self.element_name: str = element_name  # Name of the generated element
 
         # Maps to store the state (incl. RPC) operations on request/response headers and bodies
         self.access_ops: Dict[str, Dict[str, MethodType]] = {
@@ -310,12 +311,27 @@ class WasmGenerator(Visitor):
         strong_match = False
         if isinstance(node.expr, Identifier):
             # TODO: Check type after we have type inference
-            template += node.expr.accept(self, ctx) + ".as_str()"
+            template += node.expr.accept(self, ctx)
             var = ctx.find_var(node.expr.name)
             if var.consistency == "strong":
                 strong_match = True
                 # switch to on_http_call_response()
                 ctx.current_procedure = FUNC_EXTERNAL_RESPONSE
+                template += ".as_str()"
+            elif (
+                var.type.name == "String"
+                and ctx.current_procedure != FUNC_EXTERNAL_RESPONSE
+            ):
+                # match (xxx) {
+                #     Some(var) => {
+                #         match(var.as_str())
+                #                   ^^^^^^^^
+                #     }
+                # }
+                # In on_http_call_response(), the outer-most match is responsible for casting
+                # results into &str
+                # TODO: complete type inference for type casting
+                template += ".as_str()"
             # var = ctx.find_var(node.expr.name)
             # if var.type.name == "String":
             #     template += node.expr.accept(self, ctx) + ".as_str()"
@@ -333,11 +349,11 @@ class WasmGenerator(Visitor):
         if strong_match:
             # For match block in on_http_call_response(), additional wrapper
             # code should be applied.
-            match_wrapper_prefix = """
-            match serde_json::from_str::<Value>(body_str) {
-                Ok(json) => {
-                    match json.get("GET") {
-                        Some(get) if !get.is_null() => {
+            match_wrapper_prefix = f"""
+            match serde_json::from_str::<Value>(body_str) {{
+                Ok(json) => {{
+                    match json.get("GET") {{
+                        Some({node.expr.name}) if !{node.expr.name}.is_null() => {{
             """
             match_wrapper_suffix = """
                         },
@@ -406,6 +422,7 @@ class WasmGenerator(Visitor):
             assert node.some
             name = node.value.name
             if ctx.find_var(name) == None:
+                # TODO: infer the correct type for the temp variable
                 ctx.declare(name, WasmBasicType("String"), True, False)  # declare temp
             else:
                 LOG.error("variable already defined should not appear in Some")
@@ -587,9 +604,9 @@ class WasmGenerator(Visitor):
         else:
             match node.method:
                 case MethodType.GET:
-                    ret += t.gen_get(args)
+                    ret += t.gen_get(args, ctx.element_name)
                 case MethodType.SET:
-                    ret += t.gen_set(args, ctx.current_procedure)
+                    ret += t.gen_set(args, ctx.element_name, ctx.current_procedure)
                 case MethodType.DELETE:
                     ret += t.gen_delete(args)
                 case MethodType.SIZE:
@@ -600,8 +617,16 @@ class WasmGenerator(Visitor):
 
     def visitSend(self, node: Send, ctx: WasmContext) -> str:
         # TODO: currently do not support doing things after send!
+        status_code = 403
         # TODO: The status code should be configurable
         if isinstance(node.msg, Error):
+            # If the Error message is numeral, we will consider it as
+            # the status code
+            if (
+                node.msg.msg.type == DataType.STR
+                and node.msg.msg.value[1:-1].isnumeric()
+            ):
+                status_code = int(node.msg.msg.value[1:-1])
             # For Send statement in on_http_call_response(), the return type
             # should be ()
             return_stmt = (
@@ -610,9 +635,9 @@ class WasmGenerator(Visitor):
                 else "return Action::Pause;"
             )
             return (
-                """
+                f"""
                         self.send_http_response(
-                            403,
+                            {status_code},
                             vec![
                                 ("grpc-status", "1"),
                             ],

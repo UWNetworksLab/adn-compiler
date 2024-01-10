@@ -65,7 +65,9 @@ def gen_code(
         generator = WasmGenerator(placement)
         finalize = WasmFinalize
         # TODO(XZ): We assume there will be only one method being used in an element.
-        ctx = WasmContext(proto=proto, method_name=method_name)
+        ctx = WasmContext(
+            proto=proto, method_name=method_name, element_name=output_name
+        )
 
     printer = Printer()
 
@@ -88,8 +90,8 @@ def gen_code(
     if len(element_names) > 1:
         LOG.info(f"Consolidating IRs for {element_names}")
         consolidated = consolidate(irs)
-        p = consolidated.accept(printer, None)
         if verbose:
+            p = consolidated.accept(printer, None)
             LOG.info("Consolidated IR:")
             print(p)
     else:
