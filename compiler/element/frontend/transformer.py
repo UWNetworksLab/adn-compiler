@@ -162,6 +162,8 @@ class IRTransformer(Transformer):
         c = c[0]
         return Literal(c)
 
+    # TODO: remove this function as err(xxx) will be recognized as a function
+    # and handled in def func().
     def err(self, e) -> Error:
         e = e[0]
         return Error(e)
