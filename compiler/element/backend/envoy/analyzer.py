@@ -31,11 +31,11 @@ class AccessAnalyzer(Visitor):
     def visitProcedure(self, node: Procedure, ctx: WasmContext):
         match node.name:
             case "init":
-                ctx.current_func = FUNC_INIT
+                ctx.current_procedure = FUNC_INIT
             case "req":
-                ctx.current_func = FUNC_REQ_BODY
+                ctx.current_procedure = FUNC_REQ_BODY
             case "resp":
-                ctx.current_func = FUNC_RESP_BODY
+                ctx.current_procedure = FUNC_RESP_BODY
             case _:
                 raise Exception("unknown function")
         for b in node.body:
@@ -46,7 +46,10 @@ class AccessAnalyzer(Visitor):
             node.stmt.accept(self, ctx)
 
     def visitMatch(self, node: Match, ctx: WasmContext):
-        pass
+        node.expr.accept(self, ctx)
+        for p, s in node.actions:
+            for st in s:
+                st.accept(self, ctx)
 
     def visitAssign(self, node: Assign, ctx: WasmContext):
         node.right.accept(self, ctx)
@@ -79,10 +82,10 @@ class AccessAnalyzer(Visitor):
         # Add access operations to the corresponding function.
         # If there are multiple operations on the same object, the set takes priority.
         if (
-            node.obj.name not in ctx.access_ops[ctx.current_func]
-            or ctx.access_ops[ctx.current_func][node.obj.name] != MethodType.SET
+            node.obj.name not in ctx.access_ops[ctx.current_procedure]
+            or ctx.access_ops[ctx.current_procedure][node.obj.name] != MethodType.SET
         ):
-            ctx.access_ops[ctx.current_func][node.obj.name] = node.method
+            ctx.access_ops[ctx.current_procedure][node.obj.name] = node.method
 
         # Handle nested method calls
         for arg in node.args:
