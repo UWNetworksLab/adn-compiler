@@ -16,9 +16,6 @@ egress:
         - "requests_per_sec = 1000"
         position: "C"
 
-    -   name: "lb_random"
-        position: "C"
-
 edge:
     Frontend->Search:
     -   name: "cache"

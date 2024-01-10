@@ -11,14 +11,8 @@ git clone https://github.com/kristoff-starling/phoenix --recursive -b multi ~/ph
 ## Usage
 
 ```bash
-python3 ~/adn-compiler/compiler/main.py --spec path_to_spec --backend BACKEND [--verbose] [--pseudo_property] [--pseudo_impl] [--dry_run]
-
-# An example
-python3 ~/adn-compiler/compiler/main.py --verbose --pseudo_impl --spec ~/adn-compiler/examples/graph_spec/demo.yml --backend mrpc --dry_run
-```
-
-```bash
-❯ python3 ~/adn-compiler-dev/compiler/main.py --help
+# Run the graph compiler on demo.yml to generate element code and deployment scripts for mRPC.
+python3 ~/adn-compiler/compiler/main.py --spec ~/adn-compiler/examples/graph/demo.yml --backend envoy --dry_run -v
 
 usage: main.py [-h] -s SPEC_PATH [-v][--pseudo_property] [--pseudo_impl] -b {mrpc,envoy}
                [--mrpc_dir MRPC_DIR] [--dry_run] [--no_optimize] [--debug]
