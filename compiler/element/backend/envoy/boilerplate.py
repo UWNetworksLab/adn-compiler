@@ -5,6 +5,7 @@ use proxy_wasm::traits::RootContext;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use serde_json::Value;
+use std::time::Duration;
 use std::sync::RwLock;
 use prost::Message;
 use chrono::{{DateTime, Utc}};
