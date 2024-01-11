@@ -10,16 +10,18 @@ from compiler import graph_base_dir
 from compiler.graph.backend import BACKEND_CONFIG_DIR
 from compiler.graph.backend.boilerplate import attach_yml
 from compiler.graph.backend.config import port_dict, service_pos_dict
-from compiler.graph.backend.utils import copy_remote_host, execute_local, kapply
+from compiler.graph.backend.utils import *
 from compiler.graph.ir import GraphIR
+from compiler.graph.logger import GRAPH_BACKEND_LOG
 
 
-def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
+def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
     global local_gen_dir
     local_gen_dir = os.path.join(graph_base_dir, "gen")
     os.makedirs(local_gen_dir, exist_ok=True)
 
-    # compile elements
+    # Compile each element
+    GRAPH_BACKEND_LOG.info("Compiling elements for Envoy. This might take a while...")
     compiled_elements = set()
     for gir in girs.values():
         for element in gir.elements["req_client"] + gir.elements["req_server"]:
@@ -49,34 +51,43 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
                     ]
                 )
 
-    # Copy filter binaries to worker nodes and generate mount scripts
-    with open(
-        os.path.join(BACKEND_CONFIG_DIR, "ping_pong_istio_template.yml"), "r"
-    ) as f:
-        # ping_pong_istio manifest format: [
-        #     frontend_service,
-        #     frontend_deploy (w/ istio),
-        #     ping_service,
-        #     ping_deploy (w/ istio),
-        #     pong_service,
-        #     pong_deploy (w/ istio),
-        # ]
-        yml_list = list(yaml.safe_load_all(f))
+    # Generate the istio manifest file for the application.
+    execute_local(
+        [
+            "istioctl",
+            "kube-inject",
+            "-f",
+            app_manifest_file,
+            "-o",
+            os.path.join(local_gen_dir, app + "_istio.yml"),
+        ]
+    )
+    GRAPH_BACKEND_LOG.info("Generating the istio manifest file for the application...")
+    with open(os.path.join(BACKEND_CONFIG_DIR, app_manifest_file), "r") as f:
+        yml_list_plain = list(yaml.safe_load_all(f))
+    service_to_hostname = extract_service_pos(yml_list_plain)
+
+    with open(os.path.join(local_gen_dir, app + "_istio.yml"), "r") as f:
+        yml_list_istio = list(yaml.safe_load_all(f))
     with open(os.path.join(BACKEND_CONFIG_DIR, "webdis_template.yml"), "r") as f:
         webdis_service, webdis_deploy = list(yaml.safe_load_all(f))
-    with open(os.path.join(BACKEND_CONFIG_DIR, "ping_pong_template.yml"), "r") as f:
-        # manifest without istio
-        frontend_simple, ping_simple, pong_simple = list(yaml.safe_load_all(f))
 
-    frontend_deploy, ping_deploy, pong_deploy = yml_list[1], yml_list[3], yml_list[5]
-    services = list(service_pos_dict[app].keys())
-    deploy_count = {sname: 0 for sname in services}
+    # Extract the list of microservices
+    services = list()
+    for yml in yml_list_istio:
+        if yml and "kind" in yml and yml["kind"] == "Service":
+            services.append(yml["metadata"]["name"])
 
+    # element_deploy_count counts the number of elements attached to each service.
+    element_deploy_count = {sname: 0 for sname in services}
+
+    # Attach elements to the sidecar pods using volumes
     for gir in girs.values():
         elist = [(e, gir.client) for e in gir.elements["req_client"]] + [
             (e, gir.server) for e in gir.elements["req_server"]
         ]
         for (element, sname) in elist:
+            # If the element is stateful and requires strong consistency, deploy a webdis instance
             if (
                 element.prop["state"]["stateful"] == True
                 and element.prop["state"]["consistency"] == "strong"
@@ -91,14 +102,22 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
                 webdis_deploy_copy["metadata"][
                     "name"
                 ] = f"webdis-test-{element.lib_name}"
-                yml_list.append(webdis_service_copy)
-                yml_list.append(webdis_deploy_copy)
-            deploy_count[sname] += 1
+                yml_list_istio.append(webdis_service_copy)
+                yml_list_istio.append(webdis_deploy_copy)
+
+            # Increment the element deploy count
+            element_deploy_count[sname] += 1
+
+            # Copy the wasm binary to the remote host
             copy_remote_host(
-                service_pos_dict[app][sname], f"/tmp/{element.lib_name}.wasm", "/tmp/"
+                service_to_hostname[sname], f"/tmp/{element.lib_name}.wasm", "/tmp/"
             )
-            target_yml = locals()[f"{sname}_deploy"]
-            target_yml["spec"]["template"]["spec"]["containers"][1][
+
+            # Find the corresponding service in the manifest
+            target_service_yml = find_target_yml(locals()["yml_list_istio"], sname)
+
+            # Attach the element to the sidecar using volumes
+            target_service_yml["spec"]["template"]["spec"]["containers"][1][
                 "volumeMounts"
             ].append(
                 {
@@ -106,7 +125,7 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
                     "name": f"{element.lib_name}-wasm",
                 }
             )
-            target_yml["spec"]["template"]["spec"]["volumes"].append(
+            target_service_yml["spec"]["template"]["spec"]["volumes"].append(
                 {
                     "hostPath": {
                         "path": f"/tmp/{element.lib_name}.wasm",
@@ -115,45 +134,50 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str):
                     "name": f"{element.lib_name}-wasm",
                 }
             )
+
     # if a service has no elment attached, turn off its sidecar
     for sname in services:
-        if deploy_count[sname] == 0:
-            target_yml = locals()[f"{sname}_deploy"]
+        if element_deploy_count[sname] == 0:
+            target_yml = find_target_yml(locals()["yml_list_istio"], sname)
             target_yml.clear()
-            target_yml.update(locals()[f"{sname}_simple"])
+            target_yml.update(find_target_yml(locals()["yml_list_plain"], sname))
+
     # Adjust replica count
     replica = os.getenv("SERVICE_REPLICA")
     if replica is not None:
         for sname in services:
-            target_yml = locals()[f"{sname}_deploy"]
+            target_yml = find_target_yml(locals()["yml_list_istio"], sname)
             target_yml["spec"]["replicas"] = int(replica)
+
+    # Dump the final manifest file (somehow there is a None)
+    yml_list_istio = [yml for yml in yml_list_istio if yml is not None]
     with open(os.path.join(local_gen_dir, "install.yml"), "w") as f:
-        yaml.dump_all(yml_list, f, default_flow_style=False)
+        yaml.dump_all(yml_list_istio, f, default_flow_style=False)
 
     # Mount elements to the sidecar pods
-    kapply(os.path.join(local_gen_dir, "install.yml"))
+    # kapply(os.path.join(local_gen_dir, "install.yml"))
 
-    # attach elements
-    for gir in girs.values():
-        elist = [(e, gir.client, "client") for e in gir.elements["req_client"]] + [
-            (e, gir.server, "server") for e in gir.elements["req_server"]
-        ]
-        for (e, sname, placement) in elist:
-            contents = {
-                "metadata_name": f"{e.lib_name}-{sname}-{placement}",
-                "name": f"{e.lib_name}-{placement}",
-                "ename": e.lib_name,
-                "service": sname,
-                "bound": "SIDECAR_OUTBOUND"
-                if placement == "client"
-                else "SIDECAR_INBOUND",
-                "port": port_dict[app][gir.server],
-                "vmid": f"vm.sentinel.{e.lib_name}-{placement}",
-                "filename": f"/etc/{e.lib_name}.wasm",
-            }
-            attach_path = os.path.join(
-                local_gen_dir, f"{e.lib_name}-{placement}-{sname}.yml"
-            )
-            with open(attach_path, "w") as f:
-                f.write(attach_yml.format(**contents))
-            kapply(attach_path)
+    # # attach elements
+    # for gir in girs.values():
+    #     elist = [(e, gir.client, "client") for e in gir.elements["req_client"]] + [
+    #         (e, gir.server, "server") for e in gir.elements["req_server"]
+    #     ]
+    #     for (e, sname, placement) in elist:
+    #         contents = {
+    #             "metadata_name": f"{e.lib_name}-{sname}-{placement}",
+    #             "name": f"{e.lib_name}-{placement}",
+    #             "ename": e.lib_name,
+    #             "service": sname,
+    #             "bound": "SIDECAR_OUTBOUND"
+    #             if placement == "client"
+    #             else "SIDECAR_INBOUND",
+    #             "port": port_dict[app][gir.server],
+    #             "vmid": f"vm.sentinel.{e.lib_name}-{placement}",
+    #             "filename": f"/etc/{e.lib_name}.wasm",
+    #         }
+    #         attach_path = os.path.join(
+    #             local_gen_dir, f"{e.lib_name}-{placement}-{sname}.yml"
+    #         )
+    #         with open(attach_path, "w") as f:
+    #             f.write(attach_yml.format(**contents))
+    #         kapply(attach_path)

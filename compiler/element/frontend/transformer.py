@@ -4,7 +4,7 @@ from compiler.element.frontend.util import *
 from compiler.element.node import *
 
 
-class IRTransformer(Transformer):
+class ElementTransformer(Transformer):
     def __init__(self):
         pass
 

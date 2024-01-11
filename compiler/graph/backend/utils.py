@@ -4,11 +4,43 @@ Utility functions for executing commands in remote hosts/containers.
 import os
 import subprocess
 import time
-from typing import List
+from typing import Dict, List
 
 from kubernetes import client, config
 
-from compiler.graph.logger import BACKEND_LOG
+from compiler.graph.logger import GRAPH_BACKEND_LOG
+
+
+def find_target_yml(yml_list, sname):
+    return next(
+        (
+            yml
+            for yml in yml_list
+            if yml["kind"] == "Deployment" and yml["metadata"]["name"] == sname
+        ),
+        None,
+    )
+
+
+def extract_service_pos(yml_list: List) -> Dict[str, str]:
+    """Extract the service name to hostname mapping from the application manifest file.
+
+    Args:
+        app_manifest_file: The application manifest file.
+
+    Returns:
+        A dictionary mapping service name to hostname.
+    """
+    service_pos = {}
+    for yml in yml_list:
+        if yml["kind"] == "Deployment":
+            if "nodeName" in yml["spec"]["template"]["spec"]:
+                service_pos[yml["metadata"]["name"]] = yml["spec"]["template"]["spec"][
+                    "nodeName"
+                ]
+            else:
+                service_pos[yml["metadata"]["name"]] = None
+    return service_pos
 
 
 def error_handling(res, msg):
@@ -19,7 +51,7 @@ def error_handling(res, msg):
         msg: error message printed before the stderr contents.
     """
     if res.returncode != 0:
-        BACKEND_LOG.error(f"{msg}\nError msg: {res.stderr.decode('utf-8')}")
+        GRAPH_BACKEND_LOG.error(f"{msg}\nError msg: {res.stderr.decode('utf-8')}")
         raise Exception
 
 
@@ -35,7 +67,7 @@ def execute_remote_host(host: str, cmd: List[str]) -> str:
     """
     if os.getenv("DRY_RUN") == "1":
         return "xxx"
-    BACKEND_LOG.debug(f"Executing command {' '.join(cmd)} on host {host}...")
+    GRAPH_BACKEND_LOG.debug(f"Executing command {' '.join(cmd)} on host {host}...")
     res = subprocess.run(["ssh", host] + cmd, capture_output=True)
     error_handling(res, f"Error when executing command")
     return res.stdout.decode("utf-8")
@@ -52,7 +84,9 @@ def execute_remote_container(service: str, host: str, cmd: List[str]) -> str:
     Returns:
         The output of the command, or "xxx" if "--dry_run" is provided.
     """
-    BACKEND_LOG.debug(f"Executing command {' '.join(cmd)} in {service.lower()}...")
+    GRAPH_BACKEND_LOG.debug(
+        f"Executing command {' '.join(cmd)} in {service.lower()}..."
+    )
     if os.getenv("DRY_RUN") == "1":
         return "xxx"
     res = subprocess.run(
@@ -72,7 +106,7 @@ def execute_local(cmd: List[str]) -> str:
     Returns:
         The output of the command, or "xxx" if "--dry_run" is provided.
     """
-    BACKEND_LOG.debug(f"Executing command {' '.join(cmd)}...")
+    GRAPH_BACKEND_LOG.debug(f"Executing command {' '.join(cmd)}...")
     res = subprocess.run(cmd, capture_output=True)
     error_handling(res, f"Error when executing command {cmd}")
     return res.stdout.decode("utf-8")
@@ -86,7 +120,7 @@ def copy_remote_host(host: str, local_path: str, remote_path: str):
         local_path: Path to the local file/directory.
         remote_path: The target path in the remote host.
     """
-    BACKEND_LOG.debug(f"Copy file {local_path} to {host}")
+    GRAPH_BACKEND_LOG.debug(f"Copy file {local_path} to {host}")
     if os.getenv("DRY_RUN") == "1":
         return
     res = subprocess.run(
@@ -104,7 +138,7 @@ def copy_remote_container(service: str, host: str, local_path: str, remote_path:
         local_path: Path to the local file/directory.
         remote_path: The target path in the remote container.
     """
-    BACKEND_LOG.debug(f"Copy file {local_path} to {service.lower()}")
+    GRAPH_BACKEND_LOG.debug(f"Copy file {local_path} to {service.lower()}")
     if os.getenv("DRY_RUN") == "1":
         return
     filename = local_path.split("/")[-1]
@@ -136,7 +170,7 @@ def wait_until_running(namespace: str = "default"):
             i.status.phase == "Running" for i in ret.items if "echo" in i.metadata.name
         ]
         if False not in status:
-            BACKEND_LOG.debug("kpods check done")
+            GRAPH_BACKEND_LOG.debug("kpods check done")
             return
         else:
             time.sleep(2)

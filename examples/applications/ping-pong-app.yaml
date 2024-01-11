@@ -28,7 +28,7 @@ spec:
       - name: frontend
         image: xzhu0027/ping_pong_app
         command: ["/app/ping-pong"]  # Command to run within the container
-        args: ["frontend"]
+        args: ["frontend"] 
   selector:
     matchLabels:
       app: frontend
@@ -38,7 +38,6 @@ kind: Service
 metadata:
   name: ping
 spec:
-  # clusterIP: 10.96.77.76
   ports:
   - name: ping
     port: 8081
@@ -63,7 +62,7 @@ spec:
       - name: ping
         image: xzhu0027/ping_pong_app
         command: ["/app/ping-pong"]  # Command to run within the container
-        args: ["ping"]
+        args: ["ping"] 
   selector:
     matchLabels:
       app: ping
@@ -73,7 +72,6 @@ kind: Service
 metadata:
   name: pong
 spec:
-  # clusterIP: 10.96.77.77
   ports:
   - name: pong
     port: 8082
@@ -98,7 +96,7 @@ spec:
       - name: pong
         image: xzhu0027/ping_pong_app
         command: ["/app/ping-pong"]  # Command to run within the container
-        args: ["pong"]
+        args: ["pong"] 
   selector:
     matchLabels:
       app: pong

@@ -10,7 +10,7 @@ from compiler.graph.ir import GraphIR
 BACKEND_CONFIG_DIR = os.path.join(Path(__file__).parent, "config")
 
 
-def scriptgen(girs: Dict[str, GraphIR], backend: str, app: str):
+def scriptgen(girs: Dict[str, GraphIR], backend: str, app: str, app_manifest_file: str):
     """
     Call corresponding scripg generation procedure according to the backend name.
 
@@ -24,4 +24,4 @@ def scriptgen(girs: Dict[str, GraphIR], backend: str, app: str):
     except:
         raise ValueError(f"backend {backend} not supported")
     generator = getattr(module, f"scriptgen_{backend}")
-    generator(girs, app)
+    generator(girs, app, app_manifest_file)

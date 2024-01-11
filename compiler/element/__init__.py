@@ -7,7 +7,8 @@ from compiler.element.backend.envoy.finalizer import finalize as WasmFinalize
 from compiler.element.backend.envoy.wasmgen import WasmContext, WasmGenerator
 from compiler.element.backend.mrpc.finalizer import finalize as RustFinalize
 from compiler.element.backend.mrpc.rustgen import RustContext, RustGenerator
-from compiler.element.frontend import IRCompiler, Printer
+from compiler.element.frontend import ElementCompiler
+from compiler.element.frontend.printer import Printer
 from compiler.element.logger import ELEMENT_LOG as LOG
 from compiler.element.optimize.consolidate import consolidate
 from compiler.element.props.flow import FlowGraph, Property
@@ -53,7 +54,7 @@ def gen_code(
 
     # Currently, we only support mRPC and Envoy (Proxy WASM) as the backends
     assert backend_name == "mrpc" or backend_name == "envoy"
-    compiler = IRCompiler()
+    compiler = ElementCompiler()
 
     # Choose the appropriate generator and context based on the backend
     if backend_name == "mrpc":
@@ -71,8 +72,8 @@ def gen_code(
 
     printer = Printer()
 
-    # Compile and print IRs for each element
-    irs = []
+    # Generate element IR for each element.
+    eirs = []
     for element_name in element_names:
         LOG.info(f"(CodeGen) Parsing {element_name}")
         # TODO(xz): add the path to the configuration instead of hard-coded here.
@@ -80,22 +81,22 @@ def gen_code(
             os.path.join(root_base_dir, f"examples/element/{element_name}.adn")
         ) as f:
             spec = f.read()
-            ir = compiler.compile(spec)
+            ir = compiler.parse_and_transform(spec)
             if verbose:
                 p = ir.accept(printer, None)
                 print(p)
-            irs.append(ir)
+            eirs.append(ir)
 
     # Consolidate IRs if multiple engines are specified
     if len(element_names) > 1:
         LOG.info(f"Consolidating IRs for {element_names}")
-        consolidated = consolidate(irs)
+        consolidated = consolidate(eirs)
         if verbose:
             p = consolidated.accept(printer, None)
             LOG.info("Consolidated IR:")
             print(p)
     else:
-        consolidated = irs[0]
+        consolidated = eirs[0]
 
     LOG.info(f"Generating {backend_name} code")
     # TODO: Extend access analysis to all backends
@@ -114,7 +115,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
     Compiles and analyzes properties of elements defined using ADN syntax.
 
     Each .adn file contains the specification of an element's behavior. The function
-    uses an IRCompiler to compile these specifications into an intermediate representation (IR),
+    uses an ElementCompiler to compile these specifications into an intermediate representation (IR),
     and then analyzes the properties of the request and response flows using FlowGraph.
 
     The function aggregates properties (like read, write, block, copy, drop operations) for
@@ -131,11 +132,11 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
         Dict: A dictionary containing the stateful flag, and the aggregated properties for
               both request and response processing.
     """
-    compiler = IRCompiler()
+    compiler = ElementCompiler()
     printer = Printer()
 
     # Initialize a tuple of Property objects to hold request and response properties
-    LOG.info("Analyzing element properties")
+    LOG.info(f"Analyzing element properties. Element list: {element_names}")
     ret = (Property(), Property())
 
     # Default properties
@@ -152,7 +153,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
         ) as f:
             # Read the specification from file and generate the intermediate representation
             spec = f.read()
-            ir = compiler.compile(spec)
+            ir = compiler.parse_and_transform(spec)
 
             if verbose:
                 p = ir.accept(printer, None)
@@ -182,9 +183,10 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
             stateful = stateful or len(ir.definition.internal) > 0
 
             # TODO(XZ): might want want to check for individual state variable. (incl. conflict requirements)
-            consistency = ir.definition.internal[0][2].name
-            combiner = ir.definition.internal[0][3].name
-            persistence = ir.definition.internal[0][4].name
+            if len(ir.definition.internal) > 0:
+                consistency = ir.definition.internal[0][2].name
+                combiner = ir.definition.internal[0][3].name
+                persistence = ir.definition.internal[0][4].name
 
     ret[0].check()
     ret[1].check()

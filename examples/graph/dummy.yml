@@ -1,12 +1,13 @@
-app_name: "hotel_reservation"
+app_name: "ping_pong_bench"
+
+app_manifest: "ping-pong-app.yaml"
 
 app_structure:
-    - "Frontend->Search"
-    - "Frontend->Profile"
-    - "Search->Geo"
-    - "Search->Rate"
+    - "frontend->ping"
 
-egress:
-    Frontend:
-    -   name: "logging"
+edge:
+    frontend->ping:
+    -   name: "cachepingstrong"
         position: "C"
+        proto: "ping.proto"
+        method: "PingEcho"

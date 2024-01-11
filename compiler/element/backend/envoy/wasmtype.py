@@ -125,7 +125,6 @@ class WasmSyncMapType(WasmType):
                         vec![
                             (":method", "GET"),
                             (":path", &format!("/GET/{{}}", {args[0]})),
-                            // (":path", "/GET/hello"),
                             (":authority", "webdis-service-{ename}"), // Replace with the appropriate authority if needed
                         ],
                         None,

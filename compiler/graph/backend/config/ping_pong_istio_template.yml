@@ -162,27 +162,6 @@ spec:
           name: istio-token
         - mountPath: /etc/istio/pod
           name: istio-podinfo
-        # Add here
-        # - mountPath: /etc/acl.wasm
-        #   name: acl-wasm
-        # - mountPath: /etc/logging.wasm
-        #   name: logging-wasm
-        # - mountPath: /etc/mutation.wasm
-        #   name: mutation-wasm
-        # - mountPath: /etc/fault.wasm
-        #   name: fault-wasm
-        # - mountPath: /etc/metrics.wasm
-        #   name: metrics-wasm
-        # - mountPath: /etc/admission_control.wasm
-        #   name: admission-control-wasm
-        # - mountPath: /etc/ratelimit.wasm
-        #   name: ratelimit-wasm
-        # - mountPath: /etc/cache.wasm
-        #   name: cache-wasm
-        # - mountPath: /etc/compression.wasm
-        #   name: compression-wasm
-        # - mountPath: /etc/loadbalance.wasm
-        #   name: loadbalance-wasm
       initContainers:
       - args:
         - istio-iptables
@@ -231,42 +210,6 @@ spec:
         hostPath:
           path: /tmp/loadbalance.wasm
           type: File
-      # - name: compression-wasm
-      #   hostPath:
-      #     path: /tmp/compression.wasm
-      #     type: File
-      # - name: cache-wasm
-      #   hostPath:
-      #     path: /tmp/cache.wasm
-      #     type: File
-      # - name: ratelimit-wasm
-      #   hostPath:
-      #     path: /tmp/ratelimit.wasm
-      #     type: File
-      # - name: admission-control-wasm
-      #   hostPath:
-      #     path: /tmp/admission_control.wasm
-      #     type: File
-      # - name: metrics-wasm
-      #   hostPath:
-      #     path: /tmp/metrics.wasm
-      #     type: File
-      # - name: fault-wasm
-      #   hostPath:
-      #     path: /tmp/fault.wasm
-      #     type: File
-      # - name: acl-wasm
-      #   hostPath:
-      #     path: /tmp/acl.wasm
-      #     type: File
-      # - name: logging-wasm
-      #   hostPath:
-      #     path: /tmp/logging.wasm
-      #     type: File
-      # - name: mutation-wasm
-      #   hostPath:
-      #     path: /tmp/mutation.wasm
-      #     type: File
       - name: workload-socket
       - name: credential-socket
       - name: workload-certs
@@ -460,27 +403,6 @@ spec:
           name: istio-token
         - mountPath: /etc/istio/pod
           name: istio-podinfo
-        # Add here
-        # - mountPath: /etc/acl.wasm
-        #   name: acl-wasm
-        # - mountPath: /etc/logging.wasm
-        #   name: logging-wasm
-        # - mountPath: /etc/mutation.wasm
-        #   name: mutation-wasm
-        # - mountPath: /etc/fault.wasm
-        #   name: fault-wasm
-        # - mountPath: /etc/metrics.wasm
-        #   name: metrics-wasm
-        # - mountPath: /etc/admission_control.wasm
-        #   name: admission-control-wasm
-        # - mountPath: /etc/ratelimit.wasm
-        #   name: ratelimit-wasm
-        # - mountPath: /etc/cache.wasm
-        #   name: cache-wasm
-        # - mountPath: /etc/compression.wasm
-        #   name: compression-wasm
-        # - mountPath: /etc/loadbalance.wasm
-        #   name: loadbalance-wasm
       initContainers:
       - args:
         - istio-iptables
@@ -524,47 +446,6 @@ spec:
           runAsNonRoot: false
           runAsUser: 0
       volumes:
-      # Add here
-      # - name: loadbalance-wasm
-      #   hostPath:
-      #     path: /tmp/loadbalance.wasm
-      #     type: File
-      # - name: compression-wasm
-      #   hostPath:
-      #     path: /tmp/compression.wasm
-      #     type: File
-      # - name: cache-wasm
-      #   hostPath:
-      #     path: /tmp/cache.wasm
-      #     type: File
-      # - name: ratelimit-wasm
-      #   hostPath:
-      #     path: /tmp/ratelimit.wasm
-      #     type: File
-      # - name: admission-control-wasm
-      #   hostPath:
-      #     path: /tmp/admission_control.wasm
-      #     type: File
-      # - name: metrics-wasm
-      #   hostPath:
-      #     path: /tmp/metrics.wasm
-      #     type: File
-      # - name: fault-wasm
-      #   hostPath:
-      #     path: /tmp/fault.wasm
-      #     type: File
-      # - name: acl-wasm
-      #   hostPath:
-      #     path: /tmp/acl.wasm
-      #     type: File
-      # - name: logging-wasm
-      #   hostPath:
-      #     path: /tmp/logging.wasm
-      #     type: File
-      # - name: mutation-wasm
-      #   hostPath:
-      #     path: /tmp/mutation.wasm
-      #     type: File
       - name: workload-socket
       - name: credential-socket
       - name: workload-certs

@@ -2,7 +2,7 @@ import logging
 
 import colorlog
 
-ELEMENT_LOG = logging.getLogger("ir")
+ELEMENT_LOG = logging.getLogger("Element Compiler")
 
 loggers = [ELEMENT_LOG]
 

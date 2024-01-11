@@ -1,15 +1,14 @@
-from compiler.element.frontend.parser import IRParser
-from compiler.element.frontend.printer import Printer
-from compiler.element.frontend.transformer import IRTransformer
+from compiler.element.frontend.parser import ElementParser
+from compiler.element.frontend.transformer import ElementTransformer
 from compiler.element.node import Program
 
 
-class IRCompiler:
+class ElementCompiler:
     def __init__(self):
-        self.parser = IRParser()
-        self.transformer = IRTransformer()
+        self.parser = ElementParser()
+        self.transformer = ElementTransformer()
 
-    def compile(self, spec: str) -> Program:
+    def parse_and_transform(self, spec: str) -> Program:
         # Step 1: Generate a parse tree based on our grammar
         ast = self.parser.parse(spec)
         # print(ast.pretty())

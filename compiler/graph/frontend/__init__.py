@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+import os
 from copy import deepcopy
 from typing import Dict, Tuple, Union
 
 import yaml
 
+from compiler import root_base_dir
 from compiler.graph.ir import GraphIR
 
 
-class GCParser:
+class GraphParser:
     def __init__(self):
         self.services = set()
         self.app_edges = []
 
-    def parse(self, spec_path: str) -> Tuple[Union[Dict[str, GraphIR], str]]:
+    def parse(self, spec_path: str) -> Tuple[Union[Dict[str, GraphIR], str, str]]:
         """Parse the user specification file and produce graphirs & service locations.
 
         Args:
@@ -50,4 +52,12 @@ class GCParser:
                 pair.extend(spec_dict["link"][eid])
             if len(chain) + len(pair) > 0:
                 graphir[eid] = GraphIR(client, server, chain, pair)
-        return graphir, spec_dict["app_name"]
+
+        # The file path for application's manifest file
+        app_manifest_file = spec_dict.get("app_manifest")
+        app_manifest_file = os.path.join(
+            root_base_dir, "examples/applications", app_manifest_file
+        )
+        assert os.path.exists(app_manifest_file)
+
+        return graphir, spec_dict["app_name"], app_manifest_file
