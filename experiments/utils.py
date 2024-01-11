@@ -42,7 +42,6 @@ element_configs = {
     "encryption": None,
     "acl": None,
 }
-position_pool = ["C", "S", "none"]
 
 
 def set_element_pool(pool):
@@ -80,18 +79,20 @@ class Element:
 def select_random_elements(client: str, server: str, number: int):
     """Selects a random number of elements with random positions."""
     # TODO(xz): also generate random configurations. They can be static for now.
-    selected, positions = [], ["C", "S", "none"]
+    selected, positions = [], ["C", "S", "C/S"]  # C: client, S: server, C/S: don't care
     for name in random.sample(element_pool, number):
         e = Element(
             name,
             position=random.choice(positions),
-            proto="ping.proto",
+            proto="ping.proto",  # TODO: This should be configurable
             method="PingEcho",
             config=element_configs[name],
         )
         selected.append(e)
+
+        # TODO: not sure why we have this
         if e.position == "S":
-            positions = ["S", "none"]
+            positions = ["S", "C/S"]
     # Convert elements to YAML format
     yaml_data = {
         "edge": {f"{client}->{server}": [element.to_dict() for element in selected]},

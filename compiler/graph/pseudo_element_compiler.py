@@ -28,7 +28,7 @@ def pseudo_gen_property(element) -> Dict[str, Dict[str, Any]]:
     """
     property = {"request": dict(), "response": dict()}
     for name in element.name:
-        property_file = os.path.join(root_base_dir, "examples/property", f"{name}.yaml")
+        property_file = os.path.join(property_base_dir, f"{name}.yaml")
         assert os.path.isfile(property_file), f"property file for {name} not exist"
         with open(property_file, "r") as f:
             current_dict = yaml.safe_load(f)

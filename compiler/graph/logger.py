@@ -6,6 +6,7 @@ ELEMETN_LOG = logging.getLogger("Element Compiler")
 GRAPH_LOG = logging.getLogger("Graph Compiler")
 GRAPH_BACKEND_LOG = logging.getLogger("Graph Compiler Backend")
 EVAL_LOG = logging.getLogger("Evaluation")
+TEST_LOG = logging.getLogger("TEST")
 
 loggers = [ELEMETN_LOG, GRAPH_LOG, GRAPH_BACKEND_LOG, EVAL_LOG]
 

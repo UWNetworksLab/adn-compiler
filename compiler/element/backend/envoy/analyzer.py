@@ -9,8 +9,21 @@ FUNC_RESP_HEADER = "resp_hdr"
 FUNC_RESP_BODY = "resp_body"
 
 
-class AccessAnalyzer(Visitor):
-    # AccessAnalyzer is used to analyze the IR and record the access operations.
+def set_method(name: str, ctx: WasmContext, method: MethodType):
+    # If var name is not in the internal state definition, it's proabably a temporary variable.
+    if name not in ctx.internal_state_names:
+        return
+
+    if (
+        name not in ctx.access_ops[ctx.current_procedure]
+        or ctx.access_ops[ctx.current_procedure][name] != MethodType.SET
+    ):
+        ctx.access_ops[ctx.current_procedure][name] = method
+
+
+class AccessAnalyzer(
+    Visitor
+):  # AccessAnalyzer is used to analyze the IR and record the access operations.
     # The operations are then used to avoid unnecessary locks and RPC decode when generating the corresponding WASM code.
     def __init__(self, placement: str):
         self.placement = placement
@@ -21,12 +34,14 @@ class AccessAnalyzer(Visitor):
         pass
 
     def visitProgram(self, node: Program, ctx: WasmContext) -> str:
+        node.definition.accept(self, ctx)
         node.init.accept(self, ctx)
         node.req.accept(self, ctx)
         node.resp.accept(self, ctx)
 
     def visitInternal(self, node: Internal, ctx: WasmContext):
-        pass
+        for n in node.internal:
+            ctx.internal_state_names.append(n[0].name)
 
     def visitProcedure(self, node: Procedure, ctx: WasmContext):
         match node.name:
@@ -52,13 +67,20 @@ class AccessAnalyzer(Visitor):
                 st.accept(self, ctx)
 
     def visitAssign(self, node: Assign, ctx: WasmContext):
+        set_method(node.left.name, ctx, MethodType.SET)
         node.right.accept(self, ctx)
 
     def visitPattern(self, node: Pattern, ctx: WasmContext):
         pass
 
     def visitExpr(self, node: Expr, ctx: WasmContext):
-        pass
+        if isinstance(node.lhs, Identifier):
+            set_method(node.lhs.name, ctx, MethodType.GET)
+        if isinstance(node.rhs, Identifier):
+            set_method(node.rhs.name, ctx, MethodType.GET)
+
+        node.lhs.accept(self, ctx)
+        node.rhs.accept(self, ctx)
 
     def visitIdentifier(self, node: Identifier, ctx: WasmContext):
         pass
@@ -76,16 +98,15 @@ class AccessAnalyzer(Visitor):
         pass
 
     def visitFuncCall(self, node: FuncCall, ctx: WasmContext):
-        pass
+        for arg in node.args:
+            if isinstance(arg, Identifier):
+                set_method(arg.name, ctx, MethodType.GET)
+            arg.accept(self, ctx)
 
     def visitMethodCall(self, node: MethodCall, ctx: WasmContext):
         # Add access operations to the corresponding function.
         # If there are multiple operations on the same object, the set takes priority.
-        if (
-            node.obj.name not in ctx.access_ops[ctx.current_procedure]
-            or ctx.access_ops[ctx.current_procedure][node.obj.name] != MethodType.SET
-        ):
-            ctx.access_ops[ctx.current_procedure][node.obj.name] = node.method
+        set_method(node.obj.name, ctx, node.method)
 
         # Handle nested method calls
         for arg in node.args:

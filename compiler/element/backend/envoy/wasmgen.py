@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from compiler.element.backend.envoy import *
 from compiler.element.backend.envoy.wasmtype import *
@@ -9,6 +9,9 @@ from compiler.element.visitor import Visitor
 
 class WasmContext:
     def __init__(self, proto=None, method_name=None, element_name: str = "") -> None:
+        self.internal_state_names: Set[
+            str
+        ] = []  # List of internal state names. Used by AccessAnalyzer
         self.internal_states: List[
             WasmVariable
         ] = []  # List of internal state variables

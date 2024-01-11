@@ -70,7 +70,7 @@ class WasmVecType(WasmType):
         assert len(args) == 1
         return f".get({args[0]})"
 
-    def gen_set(self, args: List[str], current_procedure: str) -> str:
+    def gen_set(self, args: List[str], ename: str, current_procedure: str) -> str:
         assert len(args) == 2
         if args[0].endswith(".len()"):
             return f".push({args[1]})"

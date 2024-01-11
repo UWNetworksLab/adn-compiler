@@ -6,7 +6,7 @@ from typing import Dict, Tuple, Union
 
 import yaml
 
-from compiler import root_base_dir
+from compiler import *
 from compiler.graph.ir import GraphIR
 
 
@@ -55,9 +55,7 @@ class GraphParser:
 
         # The file path for application's manifest file
         app_manifest_file = spec_dict.get("app_manifest")
-        app_manifest_file = os.path.join(
-            root_base_dir, "examples/applications", app_manifest_file
-        )
+        app_manifest_file = os.path.join(app_manifest_base_dir, app_manifest_file)
         assert os.path.exists(app_manifest_file)
 
         return graphir, spec_dict["app_name"], app_manifest_file

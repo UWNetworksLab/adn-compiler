@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List
 
-from compiler import root_base_dir
+from compiler import *
 from compiler.element.backend.envoy.analyzer import AccessAnalyzer
 from compiler.element.backend.envoy.finalizer import finalize as WasmFinalize
 from compiler.element.backend.envoy.wasmgen import WasmContext, WasmGenerator
@@ -77,9 +77,7 @@ def gen_code(
     for element_name in element_names:
         LOG.info(f"(CodeGen) Parsing {element_name}")
         # TODO(xz): add the path to the configuration instead of hard-coded here.
-        with open(
-            os.path.join(root_base_dir, f"examples/element/{element_name}.adn")
-        ) as f:
+        with open(os.path.join(element_spec_base_dir, f"{element_name}.adn")) as f:
             spec = f.read()
             ir = compiler.parse_and_transform(spec)
             if verbose:
@@ -104,6 +102,7 @@ def gen_code(
         assert isinstance(ctx, WasmContext), "inconsistent context type"
         # Do a pass to analyze the IR and generate the access operation
         consolidated.accept(AccessAnalyzer(placement), ctx)
+        print(ctx.access_ops)
     # Second pass to generate the code
     consolidated.accept(generator, ctx)
 
@@ -148,9 +147,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
     for element_name in element_names:
         LOG.info(f"(Property Analyzer) Parsing {element_name}")
         # TODO(xz): add the path to the configuration instead of hard-coded here.
-        with open(
-            os.path.join(root_base_dir, f"examples/element/{element_name}.adn")
-        ) as f:
+        with open(os.path.join(element_spec_base_dir, f"{element_name}.adn")) as f:
             # Read the specification from file and generate the intermediate representation
             spec = f.read()
             ir = compiler.parse_and_transform(spec)

@@ -12,7 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.absolute()))
 sys.path.append(str(Path(__file__).parent.absolute()))
 os.environ["PHOENIX_DIR"] = os.path.join(os.getenv("HOME"), "phoenix")
 
-from compiler import compiler_base_dir, graph_base_dir
+from compiler import *
 from compiler.element import gen_code
 from compiler.graph.backend import scriptgen
 from compiler.graph.frontend import GraphParser
@@ -99,7 +99,7 @@ def compile_impl(
         gen_dir = os.path.join(gen_dir, f"{gen_name}_{placement}_{backend}")
     else:
         gen_dir = os.path.join(gen_dir, f"{gen_name}_{backend}")
-    proto = os.path.join(compiler_base_dir, "../examples/proto", proto)
+    proto = os.path.join(proto_base_dir, "/proto", proto)
     os.system(f"mkdir -p {gen_dir}")
     gen_code(engine_name, gen_name, gen_dir, backend, placement, proto, method)
 
