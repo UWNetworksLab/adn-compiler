@@ -218,7 +218,7 @@ def scriptgen_mrpc(girs: Dict[str, GraphIR], app: str):
         service_pos: A dictionary mapping service name to hostname.
     """
     global local_gen_dir
-    local_gen_dir = os.path.join(graph_base_dir, "gen")
+    local_gen_dir = os.path.join(graph_base_dir, "generated")
     os.makedirs(local_gen_dir, exist_ok=True)
 
     service_pos = service_pos_dict[app]

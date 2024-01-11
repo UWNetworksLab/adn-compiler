@@ -17,7 +17,7 @@ from compiler.element import gen_code
 from compiler.graph.backend import scriptgen
 from compiler.graph.frontend import GraphParser
 from compiler.graph.ir import GraphIR
-from compiler.graph.logger import GRAPH_IR_LOG, init_logging
+from compiler.graph.logger import GRAPH_LOG, init_logging
 from compiler.graph.pseudo_element_compiler import pseudo_compile
 
 console = Console()
@@ -106,7 +106,7 @@ def compile_impl(
 
 def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
     compiled_name = set()
-    gen_dir = os.path.join(graph_base_dir, "gen")
+    gen_dir = os.path.join(graph_base_dir, "generated")
     os.system(f"rm {gen_dir} -rf")
     for gir in graphirs.values():  # For each edge in the application
         elist = [(e, "client") for e in gir.elements["req_client"]] + [
@@ -132,7 +132,7 @@ def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
 
 
 def print_gir_summary(graphirs: Dict[str, GraphIR]):
-    GRAPH_IR_LOG.info("GraphIR summary:")
+    GRAPH_LOG.info("Graph IR summary:")
     for gir in graphirs.values():
         gir_summary[gir.name]["post-optimized"] = gir.to_rich()
         # gir_summary[gir.name]["property"] = {}
@@ -151,6 +151,7 @@ def print_gir_summary(graphirs: Dict[str, GraphIR]):
 
 def main(args):
     # Step 1: Parse the spec file and generate graph IRs (see examples/graph_spec for details about spec format)
+    GRAPH_LOG.info(f"Parsing graph spec file {args.spec_path}...")
     parser = GraphParser()
     graphirs, app_name, app_manifest_file = parser.parse(args.spec_path)
 
@@ -161,6 +162,7 @@ def main(args):
             gir_summary[gir.name]["pre-optimized"] = gir.to_rich()
 
     # Step 2: Generate element properties via element compiler and optimize the graph IR.
+    GRAPH_LOG.info("Generating element properties and optimizing the graph IR...")
     if not args.no_optimize:
         for gir in graphirs.values():
             # Each gir represests an edge in the application (a pair of communicating services)
@@ -169,10 +171,13 @@ def main(args):
 
     # Step 3: Generate backend code for the elements and deployment scripts.
     if not args.dry_run:
-        # Generate and run backend-specific scripts & commands
+        GRAPH_LOG.info(
+            "Generating backend code for the elements and deployment scripts..."
+        )
+        # Step 3.1: Generate backend code for the elements
         # pseudo_impl is set to True when we want to use hand-coded impl instead of auto-generated ones
         generate_element_impl(graphirs, args.pseudo_impl)
-        # Step 4: Generate deployment scripts
+        # Step 3.2: Generate deployment scripts
         scriptgen(graphirs, args.backend, app_name, app_manifest_file)
 
     if args.verbose:

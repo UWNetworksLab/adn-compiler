@@ -3,11 +3,11 @@ import logging
 import colorlog
 
 ELEMETN_LOG = logging.getLogger("Element Compiler")
-GRAPH_IR_LOG = logging.getLogger("Graph IR")
-GRAPH_BACKEND_LOG = logging.getLogger("Graph Backend")
+GRAPH_LOG = logging.getLogger("Graph Compiler")
+GRAPH_BACKEND_LOG = logging.getLogger("Graph Compiler Backend")
 EVAL_LOG = logging.getLogger("Evaluation")
 
-loggers = [ELEMETN_LOG, GRAPH_IR_LOG, GRAPH_BACKEND_LOG, EVAL_LOG]
+loggers = [ELEMETN_LOG, GRAPH_LOG, GRAPH_BACKEND_LOG, EVAL_LOG]
 
 
 def init_logging(dbg: bool):

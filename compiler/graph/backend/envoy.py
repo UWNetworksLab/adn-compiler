@@ -17,7 +17,7 @@ from compiler.graph.logger import GRAPH_BACKEND_LOG
 
 def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
     global local_gen_dir
-    local_gen_dir = os.path.join(graph_base_dir, "gen")
+    local_gen_dir = os.path.join(graph_base_dir, "generated")
     os.makedirs(local_gen_dir, exist_ok=True)
 
     # Compile each element
@@ -28,7 +28,7 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
             if element.lib_name not in compiled_elements:
                 compiled_elements.add(element.lib_name)
                 impl_dir = os.path.join(local_gen_dir, f"{element.lib_name}_envoy")
-                # compile
+                # Compile
                 execute_local(
                     [
                         "cargo",
@@ -153,31 +153,36 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
     yml_list_istio = [yml for yml in yml_list_istio if yml is not None]
     with open(os.path.join(local_gen_dir, "install.yml"), "w") as f:
         yaml.dump_all(yml_list_istio, f, default_flow_style=False)
+    # TODO: we probably should just pipe the output of istioctl
+    execute_local(["rm", os.path.join(local_gen_dir, app + "_istio.yml")])
 
-    # Mount elements to the sidecar pods
-    # kapply(os.path.join(local_gen_dir, "install.yml"))
+    # Generate script to attach elements.
+    for gir in girs.values():
+        elist = [(e, gir.client, "client") for e in gir.elements["req_client"]] + [
+            (e, gir.server, "server") for e in gir.elements["req_server"]
+        ]
+        for (e, sname, placement) in elist:
+            contents = {
+                "metadata_name": f"{e.lib_name}-{sname}-{placement}",
+                "name": f"{e.lib_name}-{placement}",
+                "ename": e.lib_name,
+                "service": sname,
+                "bound": "SIDECAR_OUTBOUND"
+                if placement == "client"
+                else "SIDECAR_INBOUND",
+                "port": port_dict[app][gir.server],
+                "vmid": f"vm.sentinel.{e.lib_name}-{placement}",
+                "filename": f"/etc/{e.lib_name}.wasm",
+            }
+            attach_path = os.path.join(
+                local_gen_dir, f"{e.lib_name}-{placement}-{sname}.yml"
+            )
+            with open(attach_path, "w") as f:
+                f.write(attach_yml.format(**contents))
 
-    # # attach elements
-    # for gir in girs.values():
-    #     elist = [(e, gir.client, "client") for e in gir.elements["req_client"]] + [
-    #         (e, gir.server, "server") for e in gir.elements["req_server"]
-    #     ]
-    #     for (e, sname, placement) in elist:
-    #         contents = {
-    #             "metadata_name": f"{e.lib_name}-{sname}-{placement}",
-    #             "name": f"{e.lib_name}-{placement}",
-    #             "ename": e.lib_name,
-    #             "service": sname,
-    #             "bound": "SIDECAR_OUTBOUND"
-    #             if placement == "client"
-    #             else "SIDECAR_INBOUND",
-    #             "port": port_dict[app][gir.server],
-    #             "vmid": f"vm.sentinel.{e.lib_name}-{placement}",
-    #             "filename": f"/etc/{e.lib_name}.wasm",
-    #         }
-    #         attach_path = os.path.join(
-    #             local_gen_dir, f"{e.lib_name}-{placement}-{sname}.yml"
-    #         )
-    #         with open(attach_path, "w") as f:
-    #             f.write(attach_yml.format(**contents))
-    #         kapply(attach_path)
+    GRAPH_BACKEND_LOG.info(
+        "Element compilation and manifest generation complete. The generated files are in the 'generated' directory."
+    )
+    GRAPH_BACKEND_LOG.info(
+        f"To deploy the application and attach the elements, run kubectl apply -f {local_gen_dir}"
+    )
