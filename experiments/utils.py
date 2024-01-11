@@ -53,10 +53,12 @@ def set_element_pool(pool):
 class Element:
     """Represents an element with a name, position, and optional configuration."""
 
-    def __init__(self, name: str, position: str, config=None):
+    def __init__(self, name: str, position: str, proto: str, method: str, config=None):
         self.name = name
         self.position = position
         self.config = config
+        self.proto = proto
+        self.method = method
 
     def add_config(self, config):
         """Adds or updates the configuration for the element."""
@@ -64,7 +66,7 @@ class Element:
 
     def to_dict(self):
         """Convert the Element instance to a dictionary for YAML formatting."""
-        element_dict = {"name": self.name}
+        element_dict = {"name": self.name, "method": self.method, "proto": self.proto}
         if self.position != "none":
             element_dict["position"] = self.position
         if self.config:
@@ -81,14 +83,18 @@ def select_random_elements(client: str, server: str, number: int):
     selected, positions = [], ["C", "S", "none"]
     for name in random.sample(element_pool, number):
         e = Element(
-            name, position=random.choice(positions), config=element_configs[name]
+            name,
+            position=random.choice(positions),
+            proto="ping.proto",
+            method="PingEcho",
+            config=element_configs[name],
         )
         selected.append(e)
         if e.position == "S":
             positions = ["S", "none"]
     # Convert elements to YAML format
     yaml_data = {
-        "edge": {f"{client}->{server}": [element.to_dict() for element in selected]}
+        "edge": {f"{client}->{server}": [element.to_dict() for element in selected]},
     }
 
     # Export to YAML format

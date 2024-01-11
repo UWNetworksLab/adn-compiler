@@ -37,6 +37,7 @@ app_structure = {
 
 yml_header = {
     "envoy": """app_name: "ping_pong_bench"
+app_manifest: "ping-pong-app.yaml"
 app_structure:
 -   "frontend->ping"
 """,
@@ -84,7 +85,7 @@ def gen_user_spec(backend: str, num: int, path: str) -> str:
     return spec
 
 
-def attach_elements(backend: str):
+def deploy_app_and_elements(backend: str):
     if backend == "mrpc":
         raise NotImplementedError
     elif backend == "envoy":
@@ -93,11 +94,11 @@ def attach_elements(backend: str):
         raise NotImplementedError
 
 
-def detach_elements(backend: str):
+def destory(backend: str):
     if backend == "mrpc":
         raise NotImplementedError
     elif backend == "envoy":
-        execute_local(["kubectl", "delete", "envoyfilter", "--all"])
+        execute_local(["kubectl", "delete", "all,envoyfilter", "--all"])
         ksync()
     else:
         raise NotImplementedError
@@ -150,10 +151,9 @@ if __name__ == "__main__":
                 "python3.10",
                 os.path.join(ROOT_DIR, "compiler/main.py"),
                 "--spec",
-                os.path.join(EXP_DIR, "gen/randomly_generated_spec.yml"),
+                os.path.join(EXP_DIR, "generated/randomly_generated_spec.yml"),
                 "--backend",
                 args.backend,
-                "--pseudo_impl",
             ]
 
             if mode == "pre-optimize":
@@ -161,16 +161,18 @@ if __name__ == "__main__":
 
             EVAL_LOG.info(f"Compiling spec, mode = {mode} ...")
             # Step 2.2: Deploy the application and attach the elements
-            # execute_local(compile_cmd)
-            # attach_elements(args.backend)
+            execute_local(compile_cmd)
+            break
 
-            # Step 2.4: Run wrk to get the service time
-            EVAL_LOG.info(
-                f"Running latency (service time) tests for {args.latency_duration}s..."
-            )
-            results[mode]["service time(us)"] = run_wrk_and_get_latency(
-                args.latency_duration
-            )
+            # deploy_app_and_elements(args.backend)
+
+            # # Step 2.4: Run wrk to get the service time
+            # EVAL_LOG.info(
+            #     f"Running latency (service time) tests for {args.latency_duration}s..."
+            # )
+            # results[mode]["service time(us)"] = run_wrk_and_get_latency(
+            #     args.latency_duration
+            # )
 
             # # Step 2.5: Run wrk2 to get the tail latency
             # EVAL_LOG.info(f"Running tail latency tests for {args.latency_duration}s...")
@@ -187,11 +189,11 @@ if __name__ == "__main__":
             #     target_rate=args.target_rate,
             # )
 
-            # detach_elements(args.backend)
+            # destory(args.backend)
             # break
 
-        EVAL_LOG.info("Dumping report...")
-        with open(os.path.join(report_dir, f"report_{i}.yml"), "w") as f:
-            f.write(spec)
-            f.write("---\n")
-            f.write(yaml.dump(results, default_flow_style=False, indent=4))
+        # EVAL_LOG.info("Dumping report...")
+        # with open(os.path.join(report_dir, f"report_{i}.yml"), "w") as f:
+        #     f.write(spec)
+        #     f.write("---\n")
+        #     f.write(yaml.dump(results, default_flow_style=False, indent=4))
