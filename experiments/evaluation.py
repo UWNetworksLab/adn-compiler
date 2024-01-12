@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from compiler import graph_base_dir
+from compiler import element_spec_base_dir, graph_base_dir
 from compiler.graph.backend.utils import *
 from compiler.graph.logger import EVAL_LOG, init_logging
 from experiments import EXP_DIR, ROOT_DIR
@@ -14,17 +14,17 @@ from experiments.utils import *
 
 # Some elements
 envoy_element_pool = {
-    # "cachehackping",
+    "cache",
     "fault",
-    "ratelimitnormal",
-    "lbstickyhackping",
-    "loggingping",
-    "mutationping",
-    "aclping",
-    "metricsping",
+    "ratelimit",
+    "lbsticky",
+    "logging",
+    "mutation",
+    "acl",
+    "metrics",
     "admissioncontrol",
-    # "encryptping",
-    # "bandwidthlimit",
+    # "encrypt",
+    "bandwidthlimit",
     "circuitbreaker",
 }
 
@@ -131,19 +131,25 @@ if __name__ == "__main__":
                 args.backend,
             ]
 
-            if mode == "pre-optimize":
-                compile_cmd.append("--no_optimize")
+            # if mode == "pre-optimize":
+            #     compile_cmd.append("--no_optimize")
 
             EVAL_LOG.info(f"Compiling spec, mode = {mode} ...")
             # Step 2.2: Deploy the application and attach the elements
             execute_local(compile_cmd)
 
+            EVAL_LOG.info(
+                f"Backend code and deployment script generated. Deploying the application..."
+            )
             # Clean up the k8s deployments
             kdestroy()
 
             # Deploy the application and elements. Wait until they are in running state...
             kapply(os.path.join(graph_base_dir, "generated"))
+            EVAL_LOG.info(f"Application deployed...")
 
+            #     break
+            # break
             # Step 2.4: Run wrk to get the service time
             EVAL_LOG.info(
                 f"Running latency (service time) tests for {args.latency_duration}s..."

@@ -1,0 +1,27 @@
+internal {
+	@consistency(strong) @combiner(LWW) @persistence(true)
+    lb_tab: Map<string, int>
+}
+
+fn init() {
+
+}
+
+fn req(rpc_req) {
+    key := rpc_req.get('body');
+	result := lb_tab.get(key);
+    match (result) {
+		Some(dst) => {
+            // do nothing
+		}
+		None => {
+            lb_tab.set('body', '1');
+		}
+	};
+
+	send(rpc_req, NET);
+}
+
+fn resp(rpc_resp) {
+	send(rpc_resp, APP);
+}

@@ -1,0 +1,42 @@
+// Reference: https://sre.google/sre-book/handling-overload/
+// Modulo the sliding window
+
+internal {
+	// Agression. Increasing the multiplier will make throttling less aggressive
+	multiplier: float
+	success: float
+	total: float
+}
+
+fn init(multiplier) {
+	multiplier := 0.5;
+	success := 0.0;
+	total := 0.0;
+}
+
+fn req(rpc_req) {
+	total := total + 1.0;
+
+	prob := (total - (multiplier * success)) / (total + 1.0);
+
+	match(randomf(0,1) < prob) {
+		true => {
+			send(rpc_req, NET);
+		}
+		false => {
+			send(err('admission control'), APP);
+		}
+	};
+}
+
+fn resp(rpc_resp) {
+	match(rpc_resp.get('meta_status') == 'success') {
+		true => {
+			success := success + 1.0;
+			send(rpc_resp, APP);
+		}
+		false => {
+			send(rpc_resp, APP);
+		}
+	};
+}
