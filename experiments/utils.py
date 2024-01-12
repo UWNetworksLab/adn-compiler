@@ -95,12 +95,18 @@ def select_random_elements(client: str, server: str, number: int):
         )
         selected.append(e)
 
-        # TODO: not sure why we have this
-        if e.position == "S":
-            positions = ["S", "C/S"]
+    # Sort elements by position (client->client/server->server)
+    def sort_key(element: Element):
+        order = {"C": 1, "C/S": 2, "S": 3}
+        return order.get(element.position, 0)
+
+    sorted_elements = sorted(selected, key=sort_key)
+
     # Convert elements to YAML format
     yaml_data = {
-        "edge": {f"{client}->{server}": [element.to_dict() for element in selected]},
+        "edge": {
+            f"{client}->{server}": [element.to_dict() for element in sorted_elements]
+        },
     }
 
     # Export to YAML format

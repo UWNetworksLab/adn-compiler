@@ -131,8 +131,8 @@ if __name__ == "__main__":
                 args.backend,
             ]
 
-            # if mode == "pre-optimize":
-            #     compile_cmd.append("--no_optimize")
+            if mode == "pre-optimize":
+                compile_cmd.append("--no_optimize")
 
             EVAL_LOG.info(f"Compiling spec, mode = {mode} ...")
             # Step 2.2: Deploy the application and attach the elements
@@ -150,6 +150,7 @@ if __name__ == "__main__":
 
             #     break
             # break
+
             # Step 2.4: Run wrk to get the service time
             EVAL_LOG.info(
                 f"Running latency (service time) tests for {args.latency_duration}s..."
