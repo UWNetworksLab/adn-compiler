@@ -9,9 +9,10 @@ from compiler.element.visitor import Visitor
 
 class WasmContext:
     def __init__(self, proto=None, method_name=None, element_name: str = "") -> None:
-        self.internal_state_names: Set[
-            str
-        ] = []  # List of internal state names. Used by AccessAnalyzer
+        self.internal_state_names: Set[str] = [
+            "rpc_req",
+            "rpc_resp",
+        ]  # List of internal state names. Used by AccessAnalyzer
         self.internal_states: List[
             WasmVariable
         ] = []  # List of internal state variables
@@ -254,7 +255,7 @@ class WasmGenerator(Visitor):
 
         """
 
-        # If the procedure does not access the RPC message, then we do not need to decode it
+        # If the procedure does not access the RPC message, then we do not need to decode the RPC message
         if ctx.current_procedure != FUNC_INIT:
             if ctx.current_procedure == FUNC_REQ_BODY:
                 if "rpc_req" in ctx.access_ops[ctx.current_procedure]:

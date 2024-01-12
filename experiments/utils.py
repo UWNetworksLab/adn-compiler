@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from compiler import proto_base_dir
 from compiler.graph.logger import EVAL_LOG
 
 # from experiments import EXP_DIR
@@ -41,6 +42,8 @@ element_configs = {
     "compression": None,
     "encryption": None,
     "acl": None,
+    "bandwidthlimit": None,
+    "circuitbreaker": None,
 }
 
 
@@ -84,9 +87,11 @@ def select_random_elements(client: str, server: str, number: int):
         e = Element(
             name,
             position=random.choice(positions),
-            proto="ping.proto",  # TODO: This should be configurable
+            proto=os.path.join(
+                proto_base_dir, "ping.proto"
+            ),  # TODO: This should be configurable
             method="PingEcho",
-            config=element_configs[name],
+            # config=element_configs[name],
         )
         selected.append(e)
 

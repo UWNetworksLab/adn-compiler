@@ -102,10 +102,11 @@ def gen_code(
         assert isinstance(ctx, WasmContext), "inconsistent context type"
         # Do a pass to analyze the IR and generate the access operation
         consolidated.accept(AccessAnalyzer(placement), ctx)
-        print(ctx.access_ops)
+
     # Second pass to generate the code
     consolidated.accept(generator, ctx)
 
+    # Finalize the generated code
     finalize(output_name, ctx, output_dir, placement, proto_path)
 
 

@@ -4,24 +4,28 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import yaml
-
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from compiler.graph.backend.utils import execute_local, ksync
+from compiler import graph_base_dir
+from compiler.graph.backend.utils import *
 from compiler.graph.logger import EVAL_LOG, init_logging
 from experiments import EXP_DIR, ROOT_DIR
 from experiments.utils import *
 
 # Some elements
 envoy_element_pool = {
-    "acl",
-    "mutation",
-    "logging",
-    "metrics",
-    "ratelimit",
-    "admissioncontrol",
+    # "cachehackping",
     "fault",
+    "ratelimitnormal",
+    "lbstickyhackping",
+    "loggingping",
+    "mutationping",
+    "aclping",
+    "metricsping",
+    "admissioncontrol",
+    # "encryptping",
+    # "bandwidthlimit",
+    "circuitbreaker",
 }
 
 app_structure = {
@@ -85,35 +89,6 @@ def gen_user_spec(backend: str, num: int, path: str) -> str:
     return spec
 
 
-def deploy_app_and_elements(backend: str):
-    if backend == "mrpc":
-        raise NotImplementedError
-    elif backend == "envoy":
-        pass
-    else:
-        raise NotImplementedError
-
-
-def destory(backend: str):
-    if backend == "mrpc":
-        raise NotImplementedError
-    elif backend == "envoy":
-        execute_local(["kubectl", "delete", "all,envoyfilter", "--all"])
-        ksync()
-    else:
-        raise NotImplementedError
-
-
-def deploy_application(backend: str, mode: str):
-    if backend == "mrpc":
-        raise NotImplementedError
-    elif backend == "envoy":
-        execute_local(["kubectl", "delete", "envoyfilter", "--all"])
-        ksync()
-    else:
-        raise NotImplementedError
-
-
 if __name__ == "__main__":
 
     # Some initializaion
@@ -162,38 +137,43 @@ if __name__ == "__main__":
             EVAL_LOG.info(f"Compiling spec, mode = {mode} ...")
             # Step 2.2: Deploy the application and attach the elements
             execute_local(compile_cmd)
-            break
 
-            # deploy_app_and_elements(args.backend)
+            # Clean up the k8s deployments
+            kdestroy()
 
-            # # Step 2.4: Run wrk to get the service time
-            # EVAL_LOG.info(
-            #     f"Running latency (service time) tests for {args.latency_duration}s..."
-            # )
-            # results[mode]["service time(us)"] = run_wrk_and_get_latency(
-            #     args.latency_duration
-            # )
+            # Deploy the application and elements. Wait until they are in running state...
+            kapply(os.path.join(graph_base_dir, "generated"))
 
-            # # Step 2.5: Run wrk2 to get the tail latency
-            # EVAL_LOG.info(f"Running tail latency tests for {args.latency_duration}s...")
-            # results[mode]["tail latency(us)"] = run_wrk2_and_get_tail_latency(args.latency_duration)
+            # Step 2.4: Run wrk to get the service time
+            EVAL_LOG.info(
+                f"Running latency (service time) tests for {args.latency_duration}s..."
+            )
+            results[mode]["service time(us)"] = run_wrk_and_get_latency(
+                args.latency_duration
+            )
+
+            # Step 2.5: Run wrk2 to get the tail latency
+            EVAL_LOG.info(f"Running tail latency tests for {args.latency_duration}s...")
+            results[mode]["tail latency(us)"] = run_wrk2_and_get_tail_latency(
+                args.latency_duration
+            )
 
             # Step 2.6: Run wrk2 to get the CPU usage
-            # EVAL_LOG.info(f"Running cpu usage tests for {args.cpu_duration}s...")
-            # results[mode]["CPU usage(VCores)"] = run_wrk2_and_get_cpu(
-            #     # ["h2", "h3"],
-            #     ["h2"],
-            #     cores_per_node=ncpu,
-            #     mpstat_duration=args.cpu_duration // 2,
-            #     wrk2_duration=args.cpu_duration,
-            #     target_rate=args.target_rate,
-            # )
+            EVAL_LOG.info(f"Running cpu usage tests for {args.cpu_duration}s...")
+            results[mode]["CPU usage(VCores)"] = run_wrk2_and_get_cpu(
+                # ["h2", "h3"],
+                ["h2"],
+                cores_per_node=ncpu,
+                mpstat_duration=args.cpu_duration // 2,
+                wrk2_duration=args.cpu_duration,
+                target_rate=args.target_rate,
+            )
 
-            # destory(args.backend)
-            # break
+            # Clean up
+            kdestroy()
 
-        # EVAL_LOG.info("Dumping report...")
-        # with open(os.path.join(report_dir, f"report_{i}.yml"), "w") as f:
-        #     f.write(spec)
-        #     f.write("---\n")
-        #     f.write(yaml.dump(results, default_flow_style=False, indent=4))
+        EVAL_LOG.info("Dumping report...")
+        with open(os.path.join(report_dir, f"report_{i}.yml"), "w") as f:
+            f.write(spec)
+            f.write("---\n")
+            f.write(yaml.dump(results, default_flow_style=False, indent=4))

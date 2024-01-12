@@ -166,9 +166,7 @@ def wait_until_running(namespace: str = "default"):
     # Find the status of echo server and wait for it.
     while True:
         ret = v1.list_namespaced_pod(namespace=namespace)
-        status = [
-            i.status.phase == "Running" for i in ret.items if "echo" in i.metadata.name
-        ]
+        status = [i.status.phase == "Running" for i in ret.items]
         if False not in status:
             GRAPH_BACKEND_LOG.debug("kpods check done")
             return
@@ -182,11 +180,16 @@ def ksync():
     wait_until_running()
 
 
-def kapply(file: str):
+def kapply(file_or_dir: str):
     """Apply changes in file to knodes.
 
     Args:
         file: configuration filename.
     """
-    execute_local(["kubectl", "apply", "-f", file])
+    execute_local(["kubectl", "apply", "-f", file_or_dir])
     ksync()
+
+
+def kdestroy():
+    """Destroy all deployments"""
+    execute_local(["kubectl", "delete", "envoyfilters,all", "--all"])

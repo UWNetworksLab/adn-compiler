@@ -89,7 +89,13 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
         for (element, sname) in elist:
             # If the element is stateful and requires strong consistency, deploy a webdis instance
             if (
-                element.prop["state"]["stateful"] == True
+                hasattr(element, "_prop")
+                and element.prop[  # The element has no property when no-optimize flag is set
+                    "state"
+                ][
+                    "stateful"
+                ]
+                == True
                 and element.prop["state"]["consistency"] == "strong"
             ):
                 # Add webdis config

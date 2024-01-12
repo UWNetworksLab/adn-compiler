@@ -99,9 +99,9 @@ def compile_impl(
         gen_dir = os.path.join(gen_dir, f"{gen_name}_{placement}_{backend}")
     else:
         gen_dir = os.path.join(gen_dir, f"{gen_name}_{backend}")
-    proto = os.path.join(proto_base_dir, "/proto", proto)
+    proto_path = os.path.join(proto_base_dir, proto)
     os.system(f"mkdir -p {gen_dir}")
-    gen_code(engine_name, gen_name, gen_dir, backend, placement, proto, method)
+    gen_code(engine_name, gen_name, gen_dir, backend, placement, proto_path, method)
 
 
 def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
@@ -124,7 +124,6 @@ def generate_element_impl(graphirs: Dict[str, GraphIR], pseudo_impl: bool):
                         gen_dir,
                         args.backend,
                         placement,
-                        # os.path.join(compiler_base_dir, "element/backend", args.backend, "templates", element.proto),
                         element.proto,
                         element.method,
                     )

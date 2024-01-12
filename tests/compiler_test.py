@@ -20,7 +20,7 @@ stream_handler.setFormatter(
     )
 )
 logger.addHandler(stream_handler)
-TEST_LOG = logging.getLogger("TEST")
+TEST_LOG = logging.getLogger("COMPILER TEST")
 
 # from experiments.utils import *
 # from experiments.evaluation import gen_user_spec
@@ -28,15 +28,16 @@ TEST_LOG = logging.getLogger("TEST")
 element_pool = [
     "cachehackping",
     "fault",
-    # "ratelimit",
-    # "loadbalance",
-    # "logging",
-    # "mutation",
-    # "accesscontrol",
-    # "metrics",
-    # "admissioncontrol",
-    # "compression",
-    # "encryption",
+    "ratelimitnormal",
+    "lbstickyhackping",
+    "loggingping",
+    "mutationping",
+    "aclping",
+    "metricsping",
+    "admissioncontrol",
+    "encryptping",
+    "bandwidthlimit",
+    "circuitbreaker",
 ]
 
 proto_file = "../examples/proto/ping.proto"
@@ -84,10 +85,11 @@ class CompilerTestCase(unittest.TestCase):
                 self.assertIn("Finished release [optimized] target(s) in", result.stderr)
         
         return test_method
+    
 
 # Dynamically add test methods to CompilerTestCase
 for element in element_pool:
-    test_method_name = f"test_{element}_compilation"
+    test_method_name = f"test_{element}_element_compilation"
     test_method = CompilerTestCase.create_test_method(element)
     setattr(CompilerTestCase, test_method_name, test_method)
 
