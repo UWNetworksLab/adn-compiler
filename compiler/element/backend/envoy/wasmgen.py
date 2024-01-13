@@ -491,13 +491,13 @@ class WasmGenerator(Visitor):
         def map_basic_type(type_def: str):
             match type_def:
                 case "float":
-                    return WasmBasicType("f32")
+                    return WasmBasicType("f64")
                 case "int":
                     return WasmBasicType("i32")
                 case "string":
                     return WasmBasicType("String")
                 case "Instant":
-                    return WasmBasicType("f32")
+                    return WasmBasicType("f64")
                 case _:
                     LOG.warning(f"unknown type: {type_def}")
                     return WasmType(type_def)
@@ -530,7 +530,7 @@ class WasmGenerator(Visitor):
         def func_mapping(fname: str) -> WasmFunctionType:
             match fname:
                 case "randomf":
-                    return WasmGlobalFunctions["random_f32"]
+                    return WasmGlobalFunctions["random_f64"]
                 case "randomu":
                     return WasmGlobalFunctions["random_u32"]
                 case "update_window":
@@ -540,7 +540,7 @@ class WasmGenerator(Visitor):
                 case "min":
                     return WasmGlobalFunctions["min_f64"]
                 case "max":
-                    return WasmGlobalFunctions["max_f32"]
+                    return WasmGlobalFunctions["max_f64"]
                 case "time_diff":
                     return WasmGlobalFunctions["time_diff"]
                 case "time_diff_ref":
@@ -693,5 +693,6 @@ def proto_gen_size(rpc: str, args: List[str]) -> str:
 
 def proto_gen_bytesize(rpc: str, args: List[str]) -> str:
     assert len(args) == 0
-    #! fix me, todo should return usize
-    return f"mem::size_of_val(&{rpc}) as f32"
+    # TODO: fix - should return usize.
+    # Also, this does not seem to return the actual length of the RPC but the pointer size.
+    return f"mem::size_of_val(&{rpc}) as f64"

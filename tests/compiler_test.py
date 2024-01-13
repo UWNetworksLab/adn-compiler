@@ -16,7 +16,7 @@ logger.level = logging.DEBUG
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(
     colorlog.ColoredFormatter(
-        "%(log_color)s%(levelname)-7s%(reset)s %(purple)s%(name)-7s%(reset)s - %(message)s"
+        "%(log_color)s%(levelname)-7s%(reset)s %(purple)s%(name)-7s%(reset)s - %(asctime)s - %(message)s",
     )
 )
 logger.addHandler(stream_handler)
@@ -26,16 +26,16 @@ TEST_LOG = logging.getLogger("COMPILER TEST")
 # from experiments.evaluation import gen_user_spec
 
 element_pool = [
-    "cachehackping",
+    "cache",
     "fault",
-    "ratelimitnormal",
-    "lbstickyhackping",
-    "loggingping",
-    "mutationping",
-    "aclping",
-    "metricsping",
+    "ratelimit",
+    "lbsticky",
+    "logging",
+    "mutation",
+    "acl",
+    "metrics",
     "admissioncontrol",
-    "encryptping",
+    # "encryptping-decryptping",
     "bandwidthlimit",
     "circuitbreaker",
 ]

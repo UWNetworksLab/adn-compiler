@@ -24,7 +24,7 @@ envoy_element_pool = [
     "acl",
     "metrics",
     "admissioncontrol",
-    # "encryptping-decryptping",
+    "encryptping-decryptping",
     "bandwidthlimit",
     "circuitbreaker",
 ]

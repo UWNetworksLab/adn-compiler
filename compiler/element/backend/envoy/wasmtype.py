@@ -319,25 +319,25 @@ WasmGlobalFunctions = {
     "current_time": WasmFunctionType(
         "gen_current_timestamp",
         [],
-        WasmBasicType("f32"),
+        WasmBasicType("f64"),
         True,
-        """pub fn gen_current_timestamp(ctx: & impl Context) -> f32 {
-            DateTime::<Utc>::from(ctx.get_current_time()).timestamp() as f32
+        """pub fn gen_current_timestamp(ctx: & impl Context) -> f64 {
+            DateTime::<Utc>::from(ctx.get_current_time()).timestamp() as f64
         }""",
     ),
     "time_diff": WasmFunctionType(
         "gen_time_difference",
-        [WasmBasicType("f32"), WasmBasicType("f32")],
-        WasmBasicType("f32"),
+        [WasmBasicType("f64"), WasmBasicType("f64")],
+        WasmBasicType("f64"),
         False,
-        "pub fn gen_time_difference(a: f32, b: f32) -> f32 { a - b }",
+        "pub fn gen_time_difference(a: f64, b: f64) -> f64 { a - b }",
     ),
-    "random_f32": WasmFunctionType(
-        "gen_random_f32",
-        [WasmBasicType("f32"), WasmBasicType("f32")],
-        WasmBasicType("f32"),
+    "random_f64": WasmFunctionType(
+        "gen_random_f64",
+        [WasmBasicType("f64"), WasmBasicType("f64")],
+        WasmBasicType("f64"),
         False,
-        "pub fn gen_random_f32(l: f32, r: f32) -> f32 { rand::random::<f32>() }",
+        "pub fn gen_random_f64(l: f64, r: f64) -> f64 { rand::random::<f64>() }",
     ),
     "random_u32": WasmFunctionType(
         "gen_random_u32",
@@ -360,12 +360,12 @@ WasmGlobalFunctions = {
         False,
         "pub fn gen_min_f64(a: f64, b: f64) -> f64 { a.min(b) }",
     ),
-    "max_f32": WasmFunctionType(
-        "gen_max_f32",
-        [WasmBasicType("f32"), WasmBasicType("f32")],
-        WasmBasicType("f32"),
+    "max_f64": WasmFunctionType(
+        "gen_max_f64",
+        [WasmBasicType("f64"), WasmBasicType("f64")],
+        WasmBasicType("f64"),
         False,
-        "pub fn gen_max_f32(a: f32, b: f32) -> f32 { a.max(b) }",
+        "pub fn gen_max_f64(a: f64, b: f64) -> f64 { a.max(b) }",
     ),
     "encrypt": WasmFunctionType(
         "gen_encrypt",
