@@ -1,26 +1,16 @@
-app_name: "hotel_reservation"
-
+app_name: "ping_pong_bench"
+app_manifest: "ping-pong-app.yaml"
 app_structure:
-    - "Frontend->Search"
-
-ingress:
-    Search:
-    -   name: "logging"
-        position: "S"
-
-egress:
-    Frontend:
-    -   name: "ratelimit"
-        config:
-        - "bucket_size = 1000"
-        - "requests_per_sec = 1000"
-        position: "C"
-
+-   "frontend->ping"
 edge:
-    Frontend->Search:
-    -   name: "cache"
-        position: "C"
-
-    -   name: "mutation"
-
-    -   name: "hotel_acl"
+    frontend->ping:
+    -   method: PingEcho
+        name: ratelimit
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: bandwidthlimit
+        position: C/S
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+link:
+    frontend->ping: []

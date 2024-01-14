@@ -1,23 +1,23 @@
 internal {
-	last: Instant
-	limit: float
-	token: float
-	per_sec: float
+	last_rate: Instant
+	limit_rate: float
+	token_rate: float
+	per_sec_rate: float
 }
 
 fn init() {
-	last := current_time();
-	limit := 1000.0;
-	token := 1000.0;
-	per_sec := 1000.0;
+	last_rate := current_time();
+	limit_rate := 1000.0;
+	token_rate := 1000.0;
+	per_sec_rate := 1000.0;
 }
 
 fn req(rpc_req) {
-	token := min(limit, token + (per_sec * time_diff(current_time(), last)));
-	last := current_time();
-    match (token > 1.0) {
+	token_rate := min(limit_rate, token_rate + (per_sec_rate * time_diff(current_time(), last_rate)));
+	last_rate := current_time();
+    match (token_rate > 1.0) {
 		true => {
-			token := token - 1.0;
+			token_rate := token_rate - 1.0;
 			send(rpc_req, NET);
         }
 		false => {

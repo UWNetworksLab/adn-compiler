@@ -15,18 +15,18 @@ from experiments.utils import *
 
 # Some elements
 envoy_element_pool = [
-    "cache",
-    "fault",
-    "ratelimit",
-    "lbsticky",
+    # "cache",
+    # "fault",
+    # "ratelimit",
+    # "lbsticky",
     "logging",
-    "mutation",
-    "acl",
-    "metrics",
-    "admissioncontrol",
-    "encryptping-decryptping",
-    "bandwidthlimit",
-    "circuitbreaker",
+    # "mutation",
+    # "acl",
+    # "metrics",
+    # "admissioncontrol",
+    # "encryptping-decryptping",
+    # "bandwidthlimit",
+    # "circuitbreaker",
 ]
 
 envoy_pair_pool = [
@@ -149,7 +149,6 @@ def run_trial(curr_trial_num) -> List[Element]:
         else:
             EVAL_LOG.info(f"[{mode}] Application is unhealthy. Restarting the trial...")
             return selected_elements
-        break
 
         # Run wrk to get the service time
         EVAL_LOG.info(
@@ -182,15 +181,13 @@ def run_trial(curr_trial_num) -> List[Element]:
         )
 
         # Clean up the k8s deployments
-    #     kdestroy()
+        kdestroy()
 
-    # print(results)
-
-    # EVAL_LOG.info("Dumping report...")
-    # with open(os.path.join(report_dir, f"report_{curr_trial_num}.yml"), "w") as f:
-    #     f.write(spec)
-    #     f.write("---\n")
-    #     f.write(yaml.dump(results, default_flow_style=False, indent=4))
+    EVAL_LOG.info("Dumping report...")
+    with open(os.path.join(report_dir, f"report_{curr_trial_num}.yml"), "w") as f:
+        f.write(spec)
+        f.write("---\n")
+        f.write(yaml.dump(results, default_flow_style=False, indent=4))
 
     return None
 
