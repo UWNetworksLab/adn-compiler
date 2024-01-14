@@ -355,7 +355,6 @@ def run_wrk2_and_get_tail_latency(
     else:
         # Parse the output
         output = stdout_data.decode()
-        print(output)
 
         # Regular expressions to find the results
         latency_50_pattern = r"50.000%\s+(\d+\.?\d*)(us|ms|s)"
