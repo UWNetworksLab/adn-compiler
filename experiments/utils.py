@@ -1,7 +1,6 @@
 import os
 import random
 import re
-import statistics
 import subprocess
 import time
 from pathlib import Path
@@ -212,8 +211,9 @@ def run_wrk_and_get_latency(duration=20):
 
     # Check if there was an error
     if proc.returncode != 0:
-        print("Error executing wrk command:")
-        print(stderr_data.decode())
+        EVAL_LOG.warning("Error executing wrk command:")
+        EVAL_LOG.warning(stdout_data.decode(), stderr_data.decode())
+        return None
     else:
         # Parse the output
         output = stdout_data.decode()
@@ -299,12 +299,12 @@ def run_wrk2_and_get_cpu(
 
     # Check if there was an error
     if proc.returncode != 0:
-        print("Error executing wrk2 command:")
-        print(stderr_data.decode())
+        EVAL_LOG.warning("Error executing wrk2 command:")
+        EVAL_LOG.warning(stdout_data.decode(), stderr_data.decode())
+        return None
     else:
         # Parse the output
         output = stdout_data.decode()
-        print(output)
 
         req_sec_pattern = r"Requests/sec:\s+(\d+\.?\d*)"
 
@@ -320,6 +320,7 @@ def run_wrk2_and_get_cpu(
                 + str(req_sec)
                 + "."
             )
+            return None
 
     return vcores
 
@@ -350,8 +351,9 @@ def run_wrk2_and_get_tail_latency(
 
     # Check if there was an error
     if proc.returncode != 0:
-        print("Error executing wrk2 command:")
-        print(stdout_data.decode(), stderr_data.decode())
+        EVAL_LOG.warning("Error executing wrk2 command:")
+        EVAL_LOG.warning(stdout_data.decode(), stderr_data.decode())
+        return None
     else:
         # Parse the output
         output = stdout_data.decode()
@@ -395,6 +397,7 @@ def run_wrk2_and_get_tail_latency(
                 + str(req_sec)
                 + "."
             )
+            return None
 
         return {
             "p50": float(latency_50),

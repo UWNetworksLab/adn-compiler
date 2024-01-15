@@ -187,7 +187,8 @@ def main(args):
     graphir_summary = {"graphir": []}
     for gir in graphirs.values():
         graphir_summary["graphir"].append(str(gir))
-    with open(os.path.join(gen_dir, "gir_summary.yml"), "w") as f:
+    # We should safe them as yaml file, but it messes up the kubectl apply command.
+    with open(os.path.join(gen_dir, "gir_summary"), "w") as f:
         f.write(yaml.dump(graphir_summary, default_flow_style=False, indent=4))
 
     # graphir rich display in terminal

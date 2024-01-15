@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import yaml
+
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
 from compiler import element_spec_base_dir, graph_base_dir
@@ -13,13 +15,15 @@ from compiler.graph.logger import EVAL_LOG, init_logging
 from experiments import EXP_DIR, ROOT_DIR
 from experiments.utils import *
 
+node_pool = ["h2"]
+
 # Some elements
 envoy_element_pool = [
     # "cache",
     # "fault",
     # "ratelimit",
-    # "lbsticky",
-    "logging",
+    "lbsticky",
+    # "logging",
     # "mutation",
     # "acl",
     # "metrics",
@@ -113,7 +117,7 @@ def run_trial(curr_trial_num) -> List[Element]:
     # Step 2: Collect latency and CPU result for pre- and post- optimization
     for mode in ["pre-optimize", "post-optimize"]:
 
-        # Step 2.1: Compile the elements
+        # Compile the elements
         compile_cmd = [
             "python3.10",
             os.path.join(ROOT_DIR, "compiler/main.py"),
@@ -131,6 +135,11 @@ def run_trial(curr_trial_num) -> List[Element]:
         EVAL_LOG.info(f"[{mode}] Compiling spec...")
         execute_local(compile_cmd)
 
+        # Save the generated Graph IR
+        with open(os.path.join(graph_base_dir, "generated/gir_summary"), "r") as f:
+            yml_list_plain = list(yaml.safe_load_all(f))
+        results[mode]["graphir"] = yml_list_plain[0]["graphir"][0]
+
         EVAL_LOG.info(
             f"[{mode}] Backend code and deployment script generated. Deploying the application..."
         )
@@ -147,7 +156,9 @@ def run_trial(curr_trial_num) -> List[Element]:
         if test_application():
             EVAL_LOG.info(f"[{mode}] Application is healthy...")
         else:
-            EVAL_LOG.info(f"[{mode}] Application is unhealthy. Restarting the trial...")
+            EVAL_LOG.warning(
+                f"[{mode}] Application is unhealthy. Restarting the trial..."
+            )
             return selected_elements
 
         # Run wrk to get the service time
@@ -158,6 +169,12 @@ def run_trial(curr_trial_num) -> List[Element]:
             args.latency_duration
         )
 
+        if not results[mode]["service time(us)"]:
+            EVAL_LOG.warning(
+                f"[{mode}] service time test (wrk) returned an error. Restarting the trial..."
+            )
+            return selected_elements
+
         # Run wrk2 to get the tail latency
         EVAL_LOG.info(
             f"[{mode}] Running tail latency tests for {args.latency_duration}s and request rate {args.target_rate*0.4} req/sec..."
@@ -167,18 +184,29 @@ def run_trial(curr_trial_num) -> List[Element]:
             args.target_rate * 0.4,
         )
 
+        if not results[mode]["tail latency(us)"]:
+            EVAL_LOG.warning(
+                f"[{mode}] tail latency test (wrk2) returned an error. Restarting the trial..."
+            )
+            return selected_elements
+
         # Run wrk2 to get the CPU usage
         EVAL_LOG.info(
-            f"[{mode}] Running cpu usage tests for {args.cpu_duration}s and request rate {args.target_rate} req/sec..."
+            f"[{mode}] Running cpu usage tests for {args.cpu_duration}s and request rate {args.target_rate*1.0} req/sec..."
         )
         results[mode]["CPU usage(VCores)"] = run_wrk2_and_get_cpu(
-            # ["h2", "h3"],
-            ["h2"],
+            node_pool,
             cores_per_node=ncpu,
             mpstat_duration=args.cpu_duration // 2,
             wrk2_duration=args.cpu_duration,
             target_rate=args.target_rate,
         )
+
+        if not results[mode]["CPU usage(VCores)"]:
+            EVAL_LOG.warning(
+                f"[{mode}] CPU usage test (wrk2) returned an error. Restarting the trial..."
+            )
+            return selected_elements
 
         # Clean up the k8s deployments
         kdestroy()
@@ -199,6 +227,10 @@ if __name__ == "__main__":
     init_logging(args.debug)
 
     # Some housekeeping
+    if args.num > len(envoy_element_pool):
+        raise ValueError(
+            f"Number of elements requested ({args.num}) is larger than the number of elements available ({len(envoy_element_pool)})."
+        )
     element_pool = globals()[f"{args.backend}_element_pool"]
     pair_pool = globals()[f"{args.backend}_pair_pool"]
     set_element_pool(element_pool, pair_pool)
@@ -208,8 +240,9 @@ if __name__ == "__main__":
     os.makedirs(report_parent_dir, exist_ok=True)
     os.makedirs(report_dir)
 
-    EVAL_LOG.info(f"Pre-compiling all {len(element_pool)} elements...")
-    pre_compiler_all_elements(element_pool)
+    # TODO: Maybe we can save time by precompiling elements
+    # EVAL_LOG.info(f"Pre-compiling all {len(element_pool)} elements...")
+    # pre_compiler_all_elements(element_pool)
 
     completed_trials = 0
     total_trials = 0
@@ -227,14 +260,15 @@ if __name__ == "__main__":
         total_trials += 1
         start_time = time.time()
         # Run a trial. If failed, it will return the failed configuration. Otherwise, none.
-        total_time += time.time() - start_time
         result = run_trial(completed_trials)
+        total_time += time.time() - start_time
         if not result:
             completed_trials += 1
         else:
             failed_configurations.append(result)
 
     EVAL_LOG.info(
-        f"Experiment completed. Total trials = {total_trials}, successful trials = {completed_trials}"
+        f"Experiment completed. Total trials = {total_trials}, successful trials = {completed_trials}, average time per-trial = {total_time/completed_trials:.2f} seconds."
     )
+    EVAL_LOG.info(f"Report saved to {report_dir}")
     EVAL_LOG.info(f"Failed configurations: {failed_configurations}")

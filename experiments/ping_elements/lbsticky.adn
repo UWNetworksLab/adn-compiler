@@ -1,5 +1,5 @@
 internal {
-	@consistency(strong) @combiner(LWW) @persistence(true)
+	@consistency(strong) @combiner(sum) @persistence(true)
     lb_tab: Map<string, int>
 }
 
@@ -8,9 +8,7 @@ fn init() {
 }
 
 fn req(rpc_req) {
-    key := rpc_req.get('body');
-	result := lb_tab.get(key);
-    match (result) {
+    match (lb_tab.get(rpc_req.get('body'))) {
 		Some(dst) => {
             // do nothing
 		}

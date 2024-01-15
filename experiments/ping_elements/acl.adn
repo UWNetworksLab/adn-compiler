@@ -1,10 +1,10 @@
 internal
 {
+	@consistency(strong) @combiner(LWW) @persistence(true)
 	acl: Map<string, string>
 }
 
 fn init() {
-	acl.set('Apple', 'Yes');
 	acl.set('test', 'No');
 }
 

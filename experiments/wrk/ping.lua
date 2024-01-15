@@ -10,7 +10,7 @@ local function randomString(length)
     return str
 end
 
-local function req1()
+local function req_random()
     local method = "GET"
     local str = randomString(100)
     local path = "http://10.96.88.88:8080/ping-echo?body=" .. str
@@ -18,22 +18,32 @@ local function req1()
     return wrk.format(method, path, headers, str)
 end
 
-local function req2()
+local function req_acl()
     local method = "GET"
-    local path = "http://10.96.88.88:8080/ping-echo?body=test"
+    local path = "http://10.96.88.88:8080/ping-echo?body=test_acl"
+    local headers = {}
+    return wrk.format(method, path, headers, str)
+end
+
+local function req_cache()
+    local method = "GET"
+    local path = "http://10.96.88.88:8080/ping-echo?body=test_cache"
     local headers = {}
     return wrk.format(method, path, headers, str)
 end
 
 request = function()
 
-    local req1_ratio  = 0.95
-    local req2_ratio   = 1 - req1_ratio
+    local req_rand_ratio  = 0.90
+    local req_cache_ratio   = 0.05
+    local req_acl_ratio  = 0.05
 
     local coin = math.random()
-    if coin < req1_ratio then
-        return req1()
+    if coin < req_rand_ratio then
+        return req_random()
+    elseif coin < req_rand_ratio + req_cache_ratio then
+        return req_cache()
     else
-        return req2()
+        return req_acl()
     end
 end

@@ -298,7 +298,9 @@ class WasmGenerator(Visitor):
             placeholder, args, res_init_code, res_get_code = "", "", "", ""
             for i, (sname, arg) in enumerate(ctx.strong_access_args.items()):
                 placeholder += "/{}"
-                args += arg.accept(self, ctx) + f'+ "_{sname}", '
+                args += (
+                    arg.accept(self, ctx) + f'+ "_{sname}", '
+                )  # Append the sname to avoid key collision between elements
                 res_init_code += f"let mut {sname}_read: Option<String> = None;\n"
                 res_get_code += f"""{sname}_read = match(mget[{i}]) {{
                                         serde_json::Value::Null => None,
