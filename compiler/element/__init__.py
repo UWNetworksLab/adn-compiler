@@ -144,6 +144,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
     consistency = None
     combiner = "LWW"
     persistence = False
+    state_dependence = None
 
     for element_name in element_names:
         LOG.info(f"(Property Analyzer) Parsing {element_name}")
@@ -180,11 +181,17 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
 
             stateful = stateful or len(ir.definition.internal) > 0
 
-            # TODO(XZ): might want want to check for individual state variable. (incl. conflict requirements)
-            if len(ir.definition.internal) > 0:
-                consistency = ir.definition.internal[0][2].name
-                combiner = ir.definition.internal[0][3].name
-                persistence = ir.definition.internal[0][4].name
+            # TODO: might want want to do a more fine-grained check state variables. (incl. conflict requirements)
+            for state in ir.definition.internal:
+                consistency = consistency or state[2].name
+                # TODO: this won't work if we use the combiner in the future
+                combiner = combiner or state[3].name
+                persistence = persistence or state[4].name
+                # TODO: this is a temp hack
+                if "client_replica" in state[0].name:
+                    state_dependence = state_dependence or "client_replica"
+                elif "server_replica" in state[0].name:
+                    state_dependence = state_dependence or "server_replica"
 
     ret[0].check()
     ret[1].check()
@@ -201,6 +208,7 @@ def compile_element_property(element_names: List[str], verbose: bool = False) ->
             "consistency": consistency,
             "combiner": combiner,
             "persistence": persistence,
+            "state_dependence": state_dependence,
         },
         "request": {
             "record" if record else "read": ret[0].read,

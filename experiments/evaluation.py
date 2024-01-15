@@ -19,18 +19,18 @@ node_pool = ["h2"]
 
 # Some elements
 envoy_element_pool = [
-    # "cache",
-    # "fault",
-    # "ratelimit",
+    "cache",
+    "fault",
+    "ratelimit",
     "lbsticky",
-    # "logging",
-    # "mutation",
-    # "acl",
-    # "metrics",
-    # "admissioncontrol",
+    "logging",
+    "mutation",
+    "acl",
+    "metrics",
+    "admissioncontrol",
     # "encryptping-decryptping",
-    # "bandwidthlimit",
-    # "circuitbreaker",
+    "bandwidthlimit",
+    "circuitbreaker",
 ]
 
 envoy_pair_pool = [
@@ -64,6 +64,7 @@ gen_dir = os.path.join(EXP_DIR, "generated")
 report_parent_dir = os.path.join(EXP_DIR, "report")
 current_time = datetime.now().strftime("%m_%d_%H_%M_%S")
 report_dir = os.path.join(report_parent_dir, "trail_" + current_time)
+wrk_script_path = os.path.join(EXP_DIR, "wrk/ping.lua")
 
 
 def parse_args():
@@ -159,27 +160,28 @@ def run_trial(curr_trial_num) -> List[Element]:
             EVAL_LOG.warning(
                 f"[{mode}] Application is unhealthy. Restarting the trial..."
             )
-            return selected_elements
+            return selected_elements, "Application Healh Check Failed"
 
         # Run wrk to get the service time
         EVAL_LOG.info(
             f"[{mode}] Running latency (service time) tests for {args.latency_duration}s..."
         )
         results[mode]["service time(us)"] = run_wrk_and_get_latency(
-            args.latency_duration
+            wrk_script_path, args.latency_duration
         )
 
         if not results[mode]["service time(us)"]:
             EVAL_LOG.warning(
                 f"[{mode}] service time test (wrk) returned an error. Restarting the trial..."
             )
-            return selected_elements
+            return selected_elements, "Service Time Test Failed"
 
         # Run wrk2 to get the tail latency
         EVAL_LOG.info(
             f"[{mode}] Running tail latency tests for {args.latency_duration}s and request rate {args.target_rate*0.4} req/sec..."
         )
         results[mode]["tail latency(us)"] = run_wrk2_and_get_tail_latency(
+            wrk_script_path,
             args.latency_duration,
             args.target_rate * 0.4,
         )
@@ -188,7 +190,7 @@ def run_trial(curr_trial_num) -> List[Element]:
             EVAL_LOG.warning(
                 f"[{mode}] tail latency test (wrk2) returned an error. Restarting the trial..."
             )
-            return selected_elements
+            return selected_elements, "Tail Latency Test Failed"
 
         # Run wrk2 to get the CPU usage
         EVAL_LOG.info(
@@ -196,6 +198,7 @@ def run_trial(curr_trial_num) -> List[Element]:
         )
         results[mode]["CPU usage(VCores)"] = run_wrk2_and_get_cpu(
             node_pool,
+            wrk_script_path,
             cores_per_node=ncpu,
             mpstat_duration=args.cpu_duration // 2,
             wrk2_duration=args.cpu_duration,
@@ -206,7 +209,7 @@ def run_trial(curr_trial_num) -> List[Element]:
             EVAL_LOG.warning(
                 f"[{mode}] CPU usage test (wrk2) returned an error. Restarting the trial..."
             )
-            return selected_elements
+            return selected_elements, "CPU Usage Test Failed"
 
         # Clean up the k8s deployments
         kdestroy()
@@ -217,7 +220,7 @@ def run_trial(curr_trial_num) -> List[Element]:
         f.write("---\n")
         f.write(yaml.dump(results, default_flow_style=False, indent=4))
 
-    return None
+    return None, None
 
 
 if __name__ == "__main__":
@@ -227,9 +230,9 @@ if __name__ == "__main__":
     init_logging(args.debug)
 
     # Some housekeeping
-    if args.num > len(envoy_element_pool):
+    if args.num > len(envoy_element_pool) + 1:
         raise ValueError(
-            f"Number of elements requested ({args.num}) is larger than the number of elements available ({len(envoy_element_pool)})."
+            f"Number of elements requested ({args.num}) is larger than the number of elements available ({len(envoy_element_pool)+1})."
         )
     element_pool = globals()[f"{args.backend}_element_pool"]
     pair_pool = globals()[f"{args.backend}_pair_pool"]
@@ -260,12 +263,12 @@ if __name__ == "__main__":
         total_trials += 1
         start_time = time.time()
         # Run a trial. If failed, it will return the failed configuration. Otherwise, none.
-        result = run_trial(completed_trials)
+        failed_configuration, reason = run_trial(completed_trials)
         total_time += time.time() - start_time
-        if not result:
+        if not failed_configuration:
             completed_trials += 1
         else:
-            failed_configurations.append(result)
+            failed_configurations.append([failed_configuration, reason])
 
     EVAL_LOG.info(
         f"Experiment completed. Total trials = {total_trials}, successful trials = {completed_trials}, average time per-trial = {total_time/completed_trials:.2f} seconds."

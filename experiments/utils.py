@@ -112,6 +112,10 @@ def select_random_elements(client: str, server: str, number: int):
         name = random.choice(local_element_pool)
         local_element_pool.remove(name)
 
+        # Retry if we select pair elements as the last element
+        if name in pair_pool and number == 1:
+            continue
+
         number -= 2 if name in pair_pool else 1
         e = Element(
             name,
@@ -144,7 +148,7 @@ def select_random_elements(client: str, server: str, number: int):
 
     # Export to YAML format
     yaml_str = yaml.dump(yaml_data, default_flow_style=False, indent=4)
-    return sorted_elements, yaml_str
+    return sorted_elements + [p for p in pairs], yaml_str
 
 
 def test_application(num_requests=10, timeout_duration=1):
@@ -188,7 +192,7 @@ def convert_to_us(value, unit):
         return float(value)
 
 
-def run_wrk_and_get_latency(duration=20):
+def run_wrk_and_get_latency(lua_script_path, duration=20):
     # TODO: Add script
     cmd = [
         os.path.join(EXP_DIR, "wrk/wrk"),
@@ -197,6 +201,7 @@ def run_wrk_and_get_latency(duration=20):
         "http://10.96.88.88:8080/ping-echo",
         f"-d {duration}",
         "-L",
+        f"-s {lua_script_path}",
     ]
     proc = subprocess.Popen(
         " ".join(cmd),
@@ -253,7 +258,7 @@ def run_wrk_and_get_latency(duration=20):
             "p50": float(latency_50),
             "p99": float(latency_99),
             "avg": float(avg_latency),
-            "rps": float(req_sec),
+            "recorded rps": float(req_sec),
         }
 
 
@@ -272,6 +277,7 @@ def get_virtual_cores(node_names, core_count, duration):
 
 def run_wrk2_and_get_cpu(
     node_names,
+    lua_script_path,
     cores_per_node=64,
     mpstat_duration=30,
     wrk2_duration=60,
@@ -282,8 +288,9 @@ def run_wrk2_and_get_cpu(
         "-t 10",
         "-c 100",
         "http://10.96.88.88:8080/ping-echo",
-        "-d DURATION".replace("DURATION", str(wrk2_duration)),
-        "-R " + str(target_rate),
+        f"-d {wrk2_duration}",
+        f"-R {str(int(target_rate))}",
+        f"-s {lua_script_path}",
     ]
     proc = subprocess.Popen(
         " ".join(cmd),
@@ -320,12 +327,15 @@ def run_wrk2_and_get_cpu(
                 + str(req_sec)
                 + "."
             )
-            return None
-
-    return vcores
+            # return None
+    return {
+        "vcores": float(vcores),
+        "recorded rps": float(req_sec),
+    }
 
 
 def run_wrk2_and_get_tail_latency(
+    lua_script_path,
     wrk2_duration=20,
     target_rate=4000,
 ):
@@ -334,10 +344,12 @@ def run_wrk2_and_get_tail_latency(
         "-t 10",
         "-c 100",
         "http://10.96.88.88:8080/ping-echo",
-        "-d DURATION".replace("DURATION", str(wrk2_duration)),
-        "-R " + str(int(target_rate)),
+        f"-d {wrk2_duration}",
+        f"-R {str(int(target_rate))}",
         "-L ",
+        f"-s {lua_script_path}",
     ]
+
     proc = subprocess.Popen(
         " ".join(cmd),
         shell=True,
@@ -360,6 +372,7 @@ def run_wrk2_and_get_tail_latency(
 
         # Regular expressions to find the results
         latency_50_pattern = r"50.000%\s+(\d+\.?\d*)(us|ms|s)"
+        latency_90_pattern = r"90.000%\s+(\d+\.?\d*)(us|ms|s)"
         latency_99_pattern = r"99.000%\s+(\d+\.?\d*)(us|ms|s)"
         avg_latency_pattern = r"Latency\s+(\d+\.?\d*)(us|ms|s)"
         req_sec_pattern = r"Requests/sec:\s+(\d+\.?\d*)"
@@ -369,6 +382,13 @@ def run_wrk2_and_get_tail_latency(
         latency_50 = (
             convert_to_us(*latency_50_match.groups())
             if latency_50_match
+            else "Not found"
+        )
+
+        latency_90_match = re.search(latency_90_pattern, output)
+        latency_90 = (
+            convert_to_us(*latency_90_match.groups())
+            if latency_90_match
             else "Not found"
         )
 
@@ -397,13 +417,14 @@ def run_wrk2_and_get_tail_latency(
                 + str(req_sec)
                 + "."
             )
-            return None
+            # return None
 
         return {
             "p50": float(latency_50),
+            "p90": float(latency_90),
             "p99": float(latency_99),
             "avg": float(avg_latency),
-            "rps": float(req_sec),
+            "recorded rps": float(req_sec),
         }
 
 

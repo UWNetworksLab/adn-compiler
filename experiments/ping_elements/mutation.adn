@@ -3,7 +3,8 @@ internal{}
 fn init() {}
 
 fn req(rpc_req) {
-  rpc_req.set('body', 'orange');
+  mutation_body := rpc_req.get('body');
+  rpc_req.set('body', mutation_body);
   send(rpc_req, NET);
 }
 

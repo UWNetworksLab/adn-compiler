@@ -1,0 +1,17 @@
+internal {
+	password: string
+}
+fn init() {
+    password := '123456';
+}
+
+fn req(rpc_req) {
+	ori := rpc_req.get('body');
+    encrypted := encrypt(ori, password);
+    rpc_req.set('body', encrypted);
+    send(rpc_req, NET);
+}
+
+fn resp(rpc_resp) {
+    send(rpc_resp, APP);
+}

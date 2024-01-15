@@ -16,7 +16,7 @@ kind: Deployment
 metadata:
   name: webdis-test-TODO
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: webdis
