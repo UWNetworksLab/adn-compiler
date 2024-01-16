@@ -9,6 +9,7 @@ from compiler.element.backend.mrpc.finalizer import finalize as RustFinalize
 from compiler.element.backend.mrpc.rustgen import RustContext, RustGenerator
 from compiler.element.frontend import ElementCompiler
 from compiler.element.frontend.printer import Printer
+from compiler.element.frontend.util import extract_proto_message_names
 from compiler.element.logger import ELEMENT_LOG as LOG
 from compiler.element.optimize.consolidate import consolidate
 from compiler.element.props.flow import FlowGraph, Property
@@ -56,6 +57,12 @@ def gen_code(
     assert backend_name == "mrpc" or backend_name == "envoy"
     compiler = ElementCompiler()
 
+    # Find the request and response message names
+    request_message_name, response_message_name = extract_proto_message_names(
+        proto_path, method_name
+    )
+    assert request_message_name is not None and response_message_name is not None
+
     # Choose the appropriate generator and context based on the backend
     if backend_name == "mrpc":
         generator = RustGenerator(placement)
@@ -67,7 +74,11 @@ def gen_code(
         finalize = WasmFinalize
         # TODO(XZ): We assume there will be only one method being used in an element.
         ctx = WasmContext(
-            proto=proto, method_name=method_name, element_name=output_name
+            proto=proto,
+            method_name=method_name,
+            element_name=output_name,
+            request_message_name=request_message_name,
+            response_message_name=response_message_name,
         )
 
     printer = Printer()

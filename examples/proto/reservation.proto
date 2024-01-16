@@ -4,12 +4,12 @@ package reservation;
 
 service Reservation {
   // MakeReservation makes a reservation based on given information
-  rpc MakeReservation(MakeReservationRequest) returns (MakeReservationResponse);
+  rpc MakeReservation(Request) returns (Result);
   // CheckAvailability checks if given information is available
-  rpc CheckAvailability(CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
+  rpc CheckAvailability(Request) returns (Result);
 }
 
-message CheckAvailabilityRequest {
+message Request {
   string customerName = 1;
   repeated string hotelId = 2;
   string inDate = 3;
@@ -17,18 +17,6 @@ message CheckAvailabilityRequest {
   int32  roomNumber = 5;
 }
 
-message CheckAvailabilityResponse {
-  repeated string hotelId = 1;
-}
-
-message MakeReservationRequest {
-  string customerName = 1;
-  repeated string hotelId = 2;
-  string inDate = 3;
-  string outDate = 4;
-  int32  roomNumber = 5;
-}
-
-message MakeReservationResponse{
+message Result {
   repeated string hotelId = 1;
 }
