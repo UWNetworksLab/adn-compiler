@@ -415,7 +415,7 @@ WasmSelfFunctions = {
         WasmBasicType("()"),
         False,
         """
-            pub fn PingEcho_response_modify_body(&mut self, req: &mut ping::PingEchoResponse, value: String) -> () {
+            pub fn PingEcho_response_modify(&mut self, req: &mut ping::PingEchoResponse, value: String) -> () {
                 let mut new_body = Vec::new();
                 req.body = value.to_string();
                 req.encode(&mut new_body).expect("Failed to encode");

@@ -24,6 +24,7 @@ def retrieve(ctx: WasmContext, name: str) -> Dict:
         "ResponseHeaders": "".join(ctx.resp_hdr_code),
         "ResponseBody": "".join(ctx.resp_body_code),
         "ExternalCallResponse": "".join(ctx.external_call_response_code),
+        "ProtoName": ctx.proto,
     }
 
 

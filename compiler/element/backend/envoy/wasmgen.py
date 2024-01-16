@@ -764,7 +764,7 @@ def proto_gen_set(rpc: str, args: List[str], ctx: WasmContext) -> str:
         raise NotImplementedError
     #! fix that use name match
     if rpc == "rpc_request":
-        return f"self.PingEcho_request_modify_{k}(&mut {rpc}, {v})"
+        return f"self.PingEcho_request_modify_{k}(sa&mut {rpc}, {v})"
     elif rpc == "rpc_response":
         return f"self.PingEcho_response_modify_{k}(&mut {rpc}, {v})"
 

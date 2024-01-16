@@ -11,8 +11,8 @@ use prost::Message;
 use chrono::{{DateTime, Utc}};
 use std::mem;
 
-pub mod ping {{
-    include!(concat!(env!("OUT_DIR"), "/ping_pb.rs"));
+pub mod {ProtoName} {{
+    include!(concat!(env!("OUT_DIR"), "/{ProtoName}.rs"));
 }}
 
 {GlobalVariables}
