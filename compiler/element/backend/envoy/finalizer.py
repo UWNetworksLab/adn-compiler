@@ -4,10 +4,7 @@ from typing import Dict
 from compiler.config import COMPILER_ROOT
 from compiler.element.backend.envoy.boilerplate import *
 from compiler.element.backend.envoy.wasmgen import WasmContext
-from compiler.element.backend.envoy.wasmtype import (
-    WasmGlobalFunctions,
-    WasmSelfFunctions,
-)
+from compiler.element.backend.envoy.wasmtype import WasmGlobalFunctions
 from compiler.element.logger import ELEMENT_LOG as LOG
 
 
@@ -17,7 +14,7 @@ def retrieve(ctx: WasmContext, name: str) -> Dict:
         "FilterName": name,
         "GlobalVariables": ctx.gen_global_var_def(),
         "GlobalFuncDef": "".join([f.definition for f in WasmGlobalFunctions.values()]),
-        "ProtoFuncDef": "".join([f.definition for f in WasmSelfFunctions.values()]),
+        "ProtoFuncDef": "".join([f for f in ctx.wasm_self_functions]),
         "Init": "".join(ctx.init_code),
         "RequestHeaders": "".join(ctx.req_hdr_code),
         "RequestBody": "".join(ctx.req_body_code),

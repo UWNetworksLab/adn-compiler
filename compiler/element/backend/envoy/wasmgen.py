@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, List, Optional, Set
 
 from compiler.element.backend.envoy import *
@@ -38,6 +39,7 @@ class WasmContext:
         self.external_call_response_code: List[
             str
         ] = []  # Code for handling external call responses (state sync)
+        self.wasm_self_functions: List[WasmVariable] = []
         self.decode: bool = True  # Flag to determine whether to decode the RPC
         self.proto: str = proto  # Protobuf used
         self.method_name: str = method_name  # Name of the RPC method
@@ -758,15 +760,36 @@ def proto_gen_get(rpc: str, args: List[str], ctx: WasmContext) -> str:
 
 def proto_gen_set(rpc: str, args: List[str], ctx: WasmContext) -> str:
     assert len(args) == 2
+    print(rpc)
+    print(args)
     k = args[0].strip('"')
     v = args[1] + ".to_string()"
     if k.startswith("meta"):
         raise NotImplementedError
     #! fix that use name match
+    replacements = {
+        "RpcMethod": ctx.method_name,
+        "VarName": k,
+        "Proto": ctx.proto,
+    }
     if rpc == "rpc_request":
-        return f"self.PingEcho_request_modify_{k}(sa&mut {rpc}, {v})"
+        ctx.wasm_self_functions.append(
+            deepcopy(
+                WasmSelfFunctionTemplates["request_modify"].definition.format(
+                    **replacements
+                )
+            )
+        )
+        return f"self.{ctx.method_name}_request_modify_{k}(&mut {rpc}, {v})"
     elif rpc == "rpc_response":
-        return f"self.PingEcho_response_modify_{k}(&mut {rpc}, {v})"
+        ctx.wasm_self_functions.append(
+            deepcopy(
+                WasmSelfFunctionTemplates["response_modify"].definition.format(
+                    **replacements
+                )
+            )
+        )
+        return f"self.{ctx.method_name}_response_modify_{k}(&mut {rpc}, {v})"
 
 
 def proto_gen_size(rpc: str, args: List[str]) -> str:
