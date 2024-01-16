@@ -129,27 +129,51 @@ def reorder(chain: List[AbsElement], path: str) -> List[AbsElement]:
 
 
 def gather(chain: List[AbsElement]) -> List[AbsElement]:
-    has_client, has_server, np = False, False, 0
+    last_client, first_server, np = -1, len(chain), 0
+    client_strong, cs_strong, server_strong = False, False, False
     for i, element in enumerate(chain):
         if element.position == "C":
-            has_client = True
+            last_client = max(last_client, i)
+            if element.prop["state"]["consistency"] == "strong":
+                client_strong = True
         elif element.position == "S":
-            has_server = True
+            first_server = min(first_server, i)
+            if element.prop["state"]["consistency"] == "strong":
+                server_strong = True
         elif element.position == "N":
             np = i
-    if not has_server:
-        # migrate all to client side
-        return chain[:np] + chain[np + 1 :] + [chain[np]]
-    if not has_client:
-        # migrate all to server side
-        return [chain[np]] + chain[:np] + chain[np + 1 :]
+        else:
+            if element.prop["state"]["consistency"] == "strong":
+                cs_strong = True
+    if first_server == len(chain):
+        # migrate all elements to the client side
+        chain = chain[:np] + chain[np + 1 :] + [chain[np]]
+    elif last_client == -1:
+        # migrate all elements to the server side
+        chain = [chain[np]] + chain[:np] + chain[np + 1 :]
+    else:
+        if server_strong and not client_strong and cs_strong:
+            # migrate all C/S elements to the server side
+            chain = (
+                chain[: last_client + 1]
+                + [chain[np]]
+                + chain[last_client + 1 : np]
+                + chain[np + 1 :]
+            )
+        else:
+            # migrate all C/S elements to the client side
+            chain = (
+                chain[:np]
+                + chain[np + 1 : first_server]
+                + [chain[np]]
+                + chain[first_server:]
+            )
     return chain
 
 
 def chain_optimize(
     chain: List[AbsElement],
     path: str,
-    pseudo_property: bool,
 ) -> Tuple[List[AbsElement], List[AbsElement]]:
     """Optimize an element chain
 
@@ -164,7 +188,8 @@ def chain_optimize(
     # Step 1: Reorder + Migration
     chain = reorder(chain, path)
 
-    # Step 2: Further migration - opportunity to turn off sidecars
+    # Step 2: Further migration - more opportunities for state consolidation
+    # and turning off sidecars
     chain = gather(chain)
 
     # split the chain into client + server

@@ -137,18 +137,13 @@ class GraphIR:
         panel_list.append(make_service_rich(self.server))
         return panel_list
 
-    def optimize(self, pseudo_property: bool):
-        """Run optimization algorithm on the graphir.
-
-        Args:
-            pseudo: If true, use the pseodo element compiler to generate element properties.
-        """
+    def optimize(self):
+        """Run optimization algorithm on the graphir."""
         self.elements["req_client"], self.elements["req_server"] = chain_optimize(
             self.elements["req_client"]
             + [AbsElement("NETWORK")]
             + self.elements["req_server"],
             "request",
-            pseudo_property,
         )
         # TODO: currently, we don't consider optimization for the response chain,
         # so the response chain is copied from request chain.

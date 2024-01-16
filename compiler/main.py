@@ -169,7 +169,7 @@ def main(args):
         for element in gir.elements["req_client"] + gir.elements["req_server"]:
             element.set_property_source(args.pseudo_property)
         if not args.no_optimize:
-            gir.optimize(args.pseudo_property)
+            gir.optimize()
 
     # Step 3: Generate backend code for the elements and deployment scripts.
     if not args.dry_run:
