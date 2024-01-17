@@ -1,0 +1,33 @@
+internal
+{
+    @consistency(strong) @combiner(sum) @persistence(true)
+	cache: Map<string, string>
+}
+
+fn init() {
+    cache.set('cn', 'cached');
+}
+
+
+fn req(rpc_req) {
+    res := cache.get(rpc_req.get('locale'));
+	match (res) {
+		Some(name) => {
+            match (name) {
+                'cached' => {
+                    send(err('200'), APP);
+                }
+                _ => {
+                    send(err('403'), APP);
+                }
+            };
+		}
+		None => {
+			send(rpc_req, NET);
+		}
+	};
+}
+
+fn resp(rpc_resp) {
+	send(rpc_resp, APP);
+}

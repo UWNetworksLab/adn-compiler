@@ -589,6 +589,8 @@ class WasmGenerator(Visitor):
                     return WasmBasicType("f64")
                 case "int":
                     return WasmBasicType("i32")
+                case "uint":
+                    return WasmBasicType("u32")
                 case "string":
                     return WasmBasicType("String")
                 case "Instant":
@@ -644,6 +646,8 @@ class WasmGenerator(Visitor):
                     return WasmGlobalFunctions["encrypt"]
                 case "decrypt":
                     return WasmGlobalFunctions["decrypt"]
+                case "rpc_id":
+                    return WasmGlobalFunctions["rpc_id"]
                 case _:
                     LOG.error(f"unknown global function: {fname} in func_mapping")
                     raise Exception("unknown global function:", fname)

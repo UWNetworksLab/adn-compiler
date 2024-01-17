@@ -1,0 +1,31 @@
+internal {
+	last_rate: Instant
+	limit_rate: float
+	token_rate: float
+	per_sec_rate: float
+}
+
+fn init() {
+	last_rate := current_time();
+	limit_rate := 1000.0;
+	token_rate := 1000.0;
+	per_sec_rate := 1000.0;
+}
+
+fn req(rpc_req) {
+	token_rate := min(limit_rate, token_rate + (per_sec_rate * time_diff(current_time(), last_rate)));
+	last_rate := current_time();
+    match (token_rate > 1.0) {
+		true => {
+			token_rate := token_rate - 1.0;
+			send(rpc_req, NET);
+        }
+		false => {
+			send(err('ratelimit'), APP);
+		}
+	};
+}
+
+fn resp(rpc_resp) {
+    send(rpc_resp, APP);
+}

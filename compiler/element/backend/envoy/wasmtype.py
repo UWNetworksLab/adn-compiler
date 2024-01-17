@@ -198,6 +198,10 @@ class WasmFunctionType(WasmType):
         return self.definition
 
     def gen_call(self, args: Optional[List[str]] = []) -> str:
+        # TODO: temp hack
+        if self.name == "rpc_id":
+            return "self.context_id"
+
         if self.use_self:
             args = ["self"] + args
         return f"{self.name}({', '.join(args)})"
@@ -289,6 +293,13 @@ class WasmVariable:
 
 
 WasmGlobalFunctions = {
+    "rpc_id": WasmFunctionType(
+        "rpc_id",
+        [],
+        WasmBasicType("u32"),
+        False,
+        "",
+    ),
     "encrypt": WasmFunctionType(
         "gen_encrypt",
         [WasmType("&str"), WasmType("&str")],

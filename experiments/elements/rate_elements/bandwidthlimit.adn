@@ -1,0 +1,32 @@
+internal {
+	last_bw: Instant
+	limit_bw: float
+	token_bw: float
+	per_sec_bw: float
+}
+
+fn init() {
+	last_bw := current_time();
+	limit_bw := 12000.0;
+	token_bw := 12000.0;
+	per_sec_bw := 12000.0;
+}
+
+fn req(rpc_req) {
+	token_bw := min(limit_bw, token_bw + (per_sec_bw * time_diff(current_time(), last_bw)));
+	last_bw := current_time();
+    size_bw := rpc_req.byte_size();
+    match (token_bw >= size_bw) {
+		true => {
+			token_bw := token_bw - size_bw;
+			send(rpc_req, NET);
+        }
+		false => {
+			send(err('ratelimit'), APP);
+		}
+	};
+}
+
+fn resp(rpc_resp) {
+    send(rpc_resp, APP);
+}

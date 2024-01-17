@@ -1,0 +1,31 @@
+internal {
+	last: Instant
+	limit: float
+	token: float
+	per_sec: float
+}
+
+fn init() {
+	last := current_time();
+	limit := 900.0;
+	token := 900.0;
+	per_sec := 900.0;
+}
+
+fn req(rpc_req) {
+	token := min(limit, token + (per_sec * time_diff(current_time(), last)));
+	last := current_time();
+    match (token > 1.0) {
+		true => {
+			token := token - 1.0;
+			send(rpc_req, NET);
+        }
+		false => {
+			send(err('ratelimit'), APP);
+		}
+	};
+}
+
+fn resp(rpc_resp) {
+    send(rpc_resp, APP);
+}

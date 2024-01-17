@@ -1,0 +1,25 @@
+internal {
+	@consistency(strong) @combiner(sum) @persistence(true)
+    lb_tab: Map<string, int>
+}
+
+fn init() {
+
+}
+
+fn req(rpc_req) {
+    match (lb_tab.get(rpc_req.get('customer_name'))) {
+		Some(dst) => {
+            // do nothing
+		}
+		None => {
+            lb_tab.set('customer_name', '1');
+		}
+	};
+
+	send(rpc_req, NET);
+}
+
+fn resp(rpc_resp) {
+	send(rpc_resp, APP);
+}

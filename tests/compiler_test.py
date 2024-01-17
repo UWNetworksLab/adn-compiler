@@ -23,29 +23,45 @@ logger.addHandler(stream_handler)
 TEST_LOG = logging.getLogger("COMPILER TEST")
 
 element_pool = [
-    # "cache",
-    # "fault",
-    # "ratelimit",
-    # "lbsticky",
-    # "logging",
+    "cache",
+    "fault",
+    "ratelimit",
+    "lbsticky",
+    "logging",
     "mutation",
-    # "acl",
-    # "metrics",
-    # "admissioncontrol",
+    "acl",
+    "metrics",
+    "admissioncontrol",
+    "bandwidthlimit",
+    "circuitbreaker",
     # "encryptping-decryptping",
-    # "bandwidthlimit",
-    # "circuitbreaker",
 ]
 
 apps = {
-    # "ping": {
-    #     "proto_file": os.path.join(proto_base_dir, "ping.proto"),   
-    #     "method_name": "PingEcho",
-    # },
+    "ping": {
+        "proto_file": os.path.join(proto_base_dir, "ping.proto"),   
+        "method_name": "PingEcho",
+    },
     "reservation": {
         "proto_file": os.path.join(proto_base_dir, "reservation.proto"),   
         "method_name": "CheckAvailability",
-    }
+    },
+    "search": {
+        "proto_file": os.path.join(proto_base_dir, "search.proto"),   
+        "method_name": "Nearby",
+    },
+    "rate": {
+        "proto_file": os.path.join(proto_base_dir, "rate.proto"),   
+        "method_name": "GetRates",
+    },
+    "profile": {
+        "proto_file": os.path.join(proto_base_dir, "profile.proto"),   
+        "method_name": "GetProfiles",
+    },
+    # "geo": {
+    #     "proto_file": os.path.join(proto_base_dir, "geo.proto"),   
+    #     "method_name": "Nearby",
+    # },
 }
 
 backend = "envoy"
@@ -79,7 +95,7 @@ class CompilerTestCase(unittest.TestCase):
             os.environ['ELEMENT_SPEC_BASE_DIR'] = os.path.join(ROOT_DIR, f"experiments/elements/{app}_elements")
             position_pool = ["client"] if backend == "envoy" else ["client", "server"]
             for position in position_pool:
-                TEST_LOG.info(f"Testing element: {element} at position: {position}")
+                TEST_LOG.info(f"Testing {app} element: {element} at position: {position}")
                 
                 # Generate element code
                 result = self.generate_element_code(element, position, proto_file, method_name)
