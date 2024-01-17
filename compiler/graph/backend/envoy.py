@@ -9,7 +9,6 @@ import yaml
 from compiler import graph_base_dir
 from compiler.graph.backend import BACKEND_CONFIG_DIR
 from compiler.graph.backend.boilerplate import attach_yml
-from compiler.graph.backend.config import port_dict, service_pos_dict
 from compiler.graph.backend.utils import *
 from compiler.graph.ir import GraphIR
 from compiler.graph.logger import GRAPH_BACKEND_LOG
@@ -71,6 +70,8 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
                 {"annotations": {"sidecar.istio.io/inject": "false"}}
             )
     service_to_hostname = extract_service_pos(yml_list_plain)
+    service_to_port_number = extract_service_port(yml_list_plain)
+    print(service_to_port_number)
 
     with open(os.path.join(local_gen_dir, app + "_istio.yml"), "r") as f:
         yml_list_istio = list(yaml.safe_load_all(f))
@@ -183,7 +184,7 @@ def scriptgen_envoy(girs: Dict[str, GraphIR], app: str, app_manifest_file: str):
                 "bound": "SIDECAR_OUTBOUND"
                 if placement == "client"
                 else "SIDECAR_INBOUND",
-                "port": port_dict[app][gir.server],
+                "port": service_to_port_number[gir.server],
                 "vmid": f"vm.sentinel.{e.lib_name}-{placement}",
                 "filename": f"/etc/{e.lib_name}.wasm",
             }

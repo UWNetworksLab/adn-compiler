@@ -14,13 +14,6 @@ service_pos_dict = {
     },
 }
 
-port_dict = {
-    "ping_pong_bench": {
-        "ping": "8081",
-        "pong": "8082",
-    }
-}
-
 # TODO: automatically detect sid
 sids = {
     "hotel": {

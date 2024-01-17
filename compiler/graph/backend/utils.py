@@ -22,7 +22,7 @@ def find_target_yml(yml_list, sname):
     )
 
 
-def extract_service_pos(yml_list: List) -> Dict[str, str]:
+def extract_service_pos(yml_list: List[Dict]) -> Dict[str, str]:
     """Extract the service name to hostname mapping from the application manifest file.
 
     Args:
@@ -41,6 +41,30 @@ def extract_service_pos(yml_list: List) -> Dict[str, str]:
             else:
                 service_pos[yml["metadata"]["name"]] = None
     return service_pos
+
+
+def extract_service_port(yml_list: List[Dict]) -> Dict[str, str]:
+    """
+    Extract the service name to port number mapping from a list of service YAML definitions.
+
+    Args:
+        yml_list: A list of dictionaries representing the parsed YAML content of the service files.
+
+    Returns:
+        A dictionary mapping each service name to its port number.
+    """
+    service_ports = {}
+    for yml in yml_list:
+        if yml["kind"] == "Service":
+            service_name = yml["metadata"]["name"]
+            ports = yml["spec"]["ports"]
+            if ports and isinstance(ports, list):
+                # Assuming the first port is the relevant one
+                service_ports[service_name] = str(ports[0]["port"])
+            else:
+                service_ports[service_name] = None  # or some default value
+
+    return service_ports
 
 
 def error_handling(res, msg):
