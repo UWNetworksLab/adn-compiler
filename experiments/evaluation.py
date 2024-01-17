@@ -9,7 +9,7 @@ import yaml
 
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
-from compiler import element_spec_base_dir, graph_base_dir
+from compiler import graph_base_dir
 from compiler.graph.backend.utils import *
 from compiler.graph.logger import EVAL_LOG, init_logging
 from experiments import EXP_DIR, ROOT_DIR
@@ -237,6 +237,10 @@ if __name__ == "__main__":
     element_pool = globals()[f"{args.backend}_element_pool"]
     pair_pool = globals()[f"{args.backend}_pair_pool"]
     set_element_pool(element_pool, pair_pool)
+
+    os.environ["ELEMENT_SPEC_BASE_DIR"] = os.path.join(
+        EXP_DIR, "elements/ping_elements"
+    )
 
     os.system(f"rm {gen_dir} -rf")
     os.makedirs(gen_dir)

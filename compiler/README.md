@@ -12,6 +12,7 @@ git clone https://github.com/kristoff-starling/phoenix --recursive -b multi ~/ph
 
 ```bash
 # Run the graph compiler on demo.yml to generate element code and deployment scripts for mRPC.
+export ELEMENT_SPEC_BASE_DIR="$(dirname $(pwd))/examples/element"
 python3 ~/adn-compiler/compiler/main.py --spec ~/adn-compiler/examples/graph/dummy.yml --backend envoy -v
 
 usage: main.py [-h] -s SPEC_PATH [-v][--pseudo_property] [--pseudo_impl] -b {mrpc,envoy}
@@ -48,6 +49,7 @@ The element compiler convert ADN program to an IR. From IR, we can infer the ele
 ```bash
 cd compiler
 export PYTHONPATH=$PYTHONPATH:$(pwd):$(dirname $(pwd))
+export ELEMENT_SPEC_BASE_DIR="$(dirname $(pwd))/examples/element"
 # The code will be in the `./generated/` directory
 
 ❯ python element_compiler_test.py --element acl --backend envoy --placement client --proto ping.proto --method_name PingEcho
