@@ -216,4 +216,4 @@ def kapply(file_or_dir: str):
 
 def kdestroy():
     """Destroy all deployments"""
-    execute_local(["kubectl", "delete", "envoyfilters,all", "--all"])
+    execute_local(["kubectl", "delete", "envoyfilters,all,pvc,pv", "--all"])

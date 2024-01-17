@@ -1,0 +1,13 @@
+app_name: "hotel_reservation"
+app_manifest: "hotel_reservation.yaml"
+edge:
+    frontend->reservation:
+    -   method: CheckAvailability
+        name: logging
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+    frontend->profile:
+    -   method: GetProfile
+        name: logging
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
