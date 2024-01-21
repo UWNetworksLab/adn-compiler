@@ -13,7 +13,7 @@ from compiler import graph_base_dir
 from compiler.graph.backend.utils import *
 from compiler.graph.logger import EVAL_LOG, init_logging
 from experiments import EXP_DIR, ROOT_DIR
-from experiments.utils import *
+from experiments.utils_ping import *
 
 node_pool = ["h2"]
 
@@ -60,8 +60,8 @@ app_structure:
 """,
 }
 
-gen_dir = os.path.join(EXP_DIR, "generated")
-report_parent_dir = os.path.join(EXP_DIR, "report")
+gen_dir = os.path.join(EXP_DIR, "generated_ping")
+report_parent_dir = os.path.join(EXP_DIR, "report_ping")
 current_time = datetime.now().strftime("%m_%d_%H_%M_%S")
 report_dir = os.path.join(report_parent_dir, "trail_" + current_time)
 wrk_script_path = os.path.join(EXP_DIR, "wrk/ping.lua")
@@ -86,7 +86,6 @@ def parse_args():
     parser.add_argument(
         "--target_rate", help="wrk2 request rate", type=int, default=10000
     )
-    parser.add_argument("--app", type=str, choices=["ping-pong", "hotel"])
     return parser.parse_args()
 
 
@@ -185,9 +184,10 @@ def run_trial(curr_trial_num) -> List[Element]:
                 os.path.join(graph_base_dir, "generated/bypass.py"),
             ]
         )
-        if args.app == "ping-pong":
-            for node in node_pool:
-                bypass_sidecar(node, "frontend", "8080", "S")
+
+        # Bypass the frontend ingress sidecar traversal
+        for node in node_pool:
+            bypass_sidecar(node, "frontend", "8080", "S")
 
         # break
 

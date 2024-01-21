@@ -1,5 +1,11 @@
 app_name: "hotel_reservation"
 app_manifest: "hotel_reservation.yaml"
+app_structure:
+-   "frontend->search"
+-   "frontend->reservation"
+-   "frontend->profile"
+-   "search->geo"
+-   "search->rates"
 edge:
     frontend->reservation:
     -   method: CheckAvailability
@@ -11,3 +17,18 @@ edge:
         name: logging
         position: C
         proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+    frontend->search:
+    -   method: GetProfile
+        name: logging
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+    search->geo:
+    -   method: GetProfile
+        name: logging
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+    search->rates:
+    -   method: GetProfile
+        name: logging
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/rates.proto

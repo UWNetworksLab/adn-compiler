@@ -11,9 +11,6 @@ import yaml
 from compiler import proto_base_dir
 from compiler.graph.logger import EVAL_LOG
 
-# from experiments import EXP_DIR
-
-
 EXP_DIR = Path(__file__).parent
 
 element_pool = []
@@ -433,11 +430,6 @@ def run_wrk2_and_get_tail_latency(
             "avg": float(avg_latency),
             "recorded rps": float(req_sec),
         }
-
-
-def pre_compiler_all_elements(element_pool):
-    # TODO
-    pass
 
 
 if __name__ == "__main__":
