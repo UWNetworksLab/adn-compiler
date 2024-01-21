@@ -217,21 +217,39 @@ class WasmContext:
         if field == "meta_status":
             if self.current_procedure == FUNC_REQ_BODY:
                 # Meta status is only set in the response
-                raise Exception("Should not read meta in request")
+                raise Exception("Should not read meta_status in request")
             if self.current_procedure == FUNC_RESP_BODY:
-                self.resp_hdr_code.append(
-                    """
-                    if let Some(status_code) = self.get_http_response_header(":status") {
-                        if status_code == "200" {
-                            self.meta_status = "success".to_string();
+                # Deduplication
+                if not any(":status" in code for code in self.resp_hdr_code):
+                    self.resp_hdr_code.append(
+                        """
+                        if let Some(status_code) = self.get_http_response_header(":status") {
+                            if status_code == "200" {
+                                self.meta_status = "success".to_string();
+                            } else {
+                                self.meta_status = "failure".to_string();
+                            }
                         } else {
-                            self.meta_status = "failure".to_string();
+                            panic!("No status code found in response headers");
                         }
-                    } else {
-                        panic!("No status code found in response headers");
-                    }
-                """
-                )
+                        """
+                    )
+        elif field == "meta_response":
+            # TODO: temp hack for circuit breaker
+            if self.current_procedure == FUNC_REQ_BODY:
+                # Meta status is only set in the response
+                raise Exception("Should not read meta_response in request")
+            if self.current_procedure == FUNC_RESP_BODY:
+                # Deduplication
+                if not any("pending_req_inner" in code for code in self.resp_hdr_code):
+                    self.resp_hdr_code.append(
+                        """
+                        let mut pending_req_inner = pending_req.write().unwrap();
+                        *pending_req_inner = (*pending_req_inner - 1) as i32;
+                        """
+                    )
+        else:
+            raise Exception("unknown meta field")
 
 
 class WasmGenerator(Visitor):

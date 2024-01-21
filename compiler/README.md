@@ -13,7 +13,7 @@ git clone https://github.com/kristoff-starling/phoenix --recursive -b multi ~/ph
 ```bash
 # Run the graph compiler on demo.yml to generate element code and deployment scripts for mRPC.
 export ELEMENT_SPEC_BASE_DIR="$(dirname $(pwd))/examples/element"
-python3 ~/adn-compiler/compiler/main.py --spec ~/adn-compiler/examples/graph/dummy.yml --backend envoy -v
+python3 ~/adn-compiler/compiler/main.py --spec ~/adn-compiler/examples/graph/dummy.yml --backend envoy -v --opt_level strong
 
 usage: main.py [-h] -s SPEC_PATH [-v][--pseudo_property] [--pseudo_impl] -b {mrpc,envoy}
                [--mrpc_dir MRPC_DIR] [--dry_run] [--no_optimize] [--debug]

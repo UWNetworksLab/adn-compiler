@@ -33,6 +33,15 @@ element_configs = {
     "circuitbreaker": None,
 }
 
+app_to_method = {
+    "ping": "PingEcho",
+    "search": "Nearby",
+    "geo": "Nearby",
+    "rate": "GetRates",
+    "reservation": "CheckAvailability",
+    "profile": "GetProfiles",
+}
+
 
 def set_element_pool(epool, ppool):
     global element_pool, pair_pool
@@ -105,9 +114,9 @@ def select_random_elements(client: str, server: str, number: int):
             name,
             position=random.choice(positions) if name not in pair_pool else "CS",
             proto=os.path.join(
-                proto_base_dir, "ping.proto"
+                proto_base_dir, f"{server}.proto"
             ),  # TODO: This should be configurable
-            method="PingEcho",
+            method=app_to_method[server],
             # config=element_configs[name],
         )
         if name in pair_pool:
@@ -124,10 +133,8 @@ def select_random_elements(client: str, server: str, number: int):
 
     # Convert elements to YAML format
     yaml_data = {
-        "edge": {
-            f"{client}->{server}": [element.to_dict() for element in sorted_elements]
-        },
-        "link": {f"{client}->{server}": [element.to_dict() for element in pairs]},
+        f"{client}->{server}": [element.to_dict() for element in sorted_elements]
+        # "link": {f"{client}->{server}": [element.to_dict() for element in pairs]},
     }
 
     # Export to YAML format

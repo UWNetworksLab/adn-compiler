@@ -5,7 +5,7 @@ app_structure:
 -   "frontend->reservation"
 -   "frontend->profile"
 -   "search->geo"
--   "search->rates"
+-   "search->rate"
 edge:
     frontend->reservation:
     -   method: CheckAvailability
@@ -27,8 +27,8 @@ edge:
         name: logging
         position: C
         proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
-    search->rates:
+    search->rate:
     -   method: GetProfile
         name: logging
         position: C
-        proto: /users/xzhu/adn-compiler/examples/proto/rates.proto
+        proto: /users/xzhu/adn-compiler/examples/proto/rate.proto

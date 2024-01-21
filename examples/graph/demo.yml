@@ -5,12 +5,16 @@ app_structure:
 edge:
     frontend->ping:
     -   method: PingEcho
-        name: ratelimit
+        name: circuitbreaker
         position: C
         proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
     -   method: PingEcho
-        name: bandwidthlimit
-        position: C/S
+        name: admissioncontrol
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: cachestrong
+        position: C
         proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
 link:
     frontend->ping: []
