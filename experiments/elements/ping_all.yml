@@ -1,0 +1,72 @@
+app_name: "ping_pong_bench"
+app_manifest: "ping-pong-app.yaml"
+app_structure:
+-   "frontend->ping"
+edge:
+  frontend->ping:
+    -   method: PingEcho
+        name: fault
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: fault
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: cacheweak
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: ratelimit
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: lbstickystrong
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: logging
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: mutation
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: aclweak
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: aclstrong
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: lbstickyweak
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: cachestrong
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: metrics
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: admissioncontrol
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: bandwidthlimit
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+    -   method: PingEcho
+        name: circuitbreaker
+        position: C
+        proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+link:
+  frontend->ping:
+  -   method: PingEcho
+      name1: encryptping
+      name2: decryptping
+      proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
