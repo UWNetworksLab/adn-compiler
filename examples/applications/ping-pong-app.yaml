@@ -5,7 +5,7 @@ metadata:
 spec:
   clusterIP: 10.96.88.88
   ports:
-  - name: tcp-frontend
+  - name: frontend
     port: 8080
     targetPort: 8080
   selector:
