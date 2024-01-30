@@ -43,6 +43,10 @@ impl RootContext for {FilterName}Root {{
         {Init}
         true
     }}
+
+    fn on_tick(&mut self) {{
+        {OnTick}
+    }}
 }}
 
 struct {FilterName}Body {{
@@ -112,6 +116,48 @@ impl HttpContext for {FilterName}Body {{
         Action::Continue
     }}
 }}
+"""
+
+on_tick_template = """
+    let read_guard_{state_name} = {state_name}.read().unwrap();
+
+    let mut mset_path_{state_name} = String::from("/MSET/");
+
+    for (key, value) in read_guard_{state_name}.iter() {{
+        mset_path_{state_name}.push_str(&format!("{{}}_{state_name}/{{}}/", key, value));
+    }}
+    mset_path_{state_name} = mset_path_{state_name}.trim_end_matches('/').to_string();
+
+    self.dispatch_http_call(
+        "webdis-service-{element_name}",
+        vec![
+            (":method", "GET"),
+            (":path", &mset_path_{state_name}),
+            (":authority", "webdis-service-{element_name}"),
+        ],
+        None,
+        vec![],
+        Duration::from_secs(5),
+    );
+
+    let mut mget_path_{state_name} = String::from("/MGET/");
+
+    for (key, _value) in read_guard_{state_name}.iter() {{
+        mget_path_{state_name}.push_str(&format!("{{}}_{state_name}/", key));
+    }}
+    mget_path_{state_name} = mget_path_{state_name}.trim_end_matches('/').to_string();
+
+    self.dispatch_http_call(
+        "webdis-service-{element_name}",
+        vec![
+            (":method", "GET"),
+            (":path", &mget_path_{state_name}),
+            (":authority", "webdis-service-{element_name}"),
+        ],
+        None,
+        vec![],
+        Duration::from_secs(5),
+    );
 """
 
 cargo_toml = """

@@ -16,6 +16,7 @@ def retrieve(ctx: WasmContext, name: str) -> Dict:
         "GlobalFuncDef": "".join([f.definition for f in WasmGlobalFunctions.values()]),
         "ProtoFuncDef": "".join([f for f in ctx.wasm_self_functions]),
         "Init": "".join(ctx.init_code),
+        "OnTick": "".join(ctx.on_tick_code),
         "RequestHeaders": "".join(ctx.req_hdr_code),
         "RequestBody": "".join(ctx.req_body_code),
         "ResponseHeaders": "".join(ctx.resp_hdr_code),
