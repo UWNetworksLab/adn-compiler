@@ -26,7 +26,7 @@ class WasmContext:
         self.internal_states: List[
             WasmVariable
         ] = []  # List of internal state variables
-        self.strong_consisteny_states: List[
+        self.strong_consistency_states: List[
             WasmVariable
         ] = []  # List of strong consistency variables
         self.inners: List[
@@ -93,7 +93,7 @@ class WasmContext:
                 persistence=persistence,
             )
             if consistency == "strong":
-                self.strong_consisteny_states.append(var)
+                self.strong_consistency_states.append(var)
                 self.name2var[name] = var
             elif not temp_var and not var.rpc and atomic:
                 # If it's not a temp variable and does not belong to RPC request or response processing.
@@ -132,7 +132,7 @@ class WasmContext:
 
     @property
     def strong_state_count(self) -> int:
-        return len(self.strong_consisteny_states)
+        return len(self.strong_consistency_states)
 
     @property
     def rpc_hashmap(self) -> str:
