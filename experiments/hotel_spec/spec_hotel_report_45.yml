@@ -1,0 +1,104 @@
+app_name: hotel_reservation
+app_structure:
+- frontend->search
+- frontend->reservation
+- frontend->profile
+- search->geo
+- search->rate
+- rate->memcached-rate
+- rate->mongodb-rate
+- reservation->memcached-reserve
+- reservation->mongodb-reservation
+- profile->memcached-profile
+- profile->mongodb-profile
+- geo->mongodb-geo
+edge:
+  frontend->profile:
+  - method: GetProfiles
+    name: fault
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  - method: GetProfiles
+    name: admissioncontrol
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  - method: GetProfiles
+    name: mutation
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  - method: GetProfiles
+    name: circuitbreaker
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  - method: GetProfiles
+    name: ratelimit
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  frontend->reservation:
+  - method: CheckAvailability
+    name: metrics
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: cachestrong
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: mutation
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: fault
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: admissioncontrol
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  frontend->search:
+  - method: Nearby
+    name: logging
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  - method: Nearby
+    name: mutation
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  - method: Nearby
+    name: aclstrong
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  - method: Nearby
+    name: bandwidthlimit
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  search->geo:
+  - method: Nearby
+    name: mutation
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  - method: Nearby
+    name: lbstickystrong
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  - method: Nearby
+    name: fault
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  - method: Nearby
+    name: cachestrong
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  search->rate:
+  - method: GetRates
+    name: aclstrong
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto
+  - method: GetRates
+    name: ratelimit
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto
+  - method: GetRates
+    name: cachestrong
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto

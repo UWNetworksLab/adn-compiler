@@ -1,0 +1,92 @@
+app_name: hotel_reservation
+app_structure:
+- frontend->search
+- frontend->reservation
+- frontend->profile
+- search->geo
+- search->rate
+- rate->memcached-rate
+- rate->mongodb-rate
+- reservation->memcached-reserve
+- reservation->mongodb-reservation
+- profile->memcached-profile
+- profile->mongodb-profile
+- geo->mongodb-geo
+edge:
+  frontend->profile:
+  - method: GetProfiles
+    name: lbstickystrong
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  - method: GetProfiles
+    name: mutation
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  - method: GetProfiles
+    name: logging
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/profile.proto
+  frontend->reservation:
+  - method: CheckAvailability
+    name: mutation
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: metrics
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: logging
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  - method: CheckAvailability
+    name: lbstickystrong
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/reservation.proto
+  frontend->search:
+  - method: Nearby
+    name: circuitbreaker
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  - method: Nearby
+    name: mutation
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  - method: Nearby
+    name: aclstrong
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/search.proto
+  search->geo:
+  - method: Nearby
+    name: admissioncontrol
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  - method: Nearby
+    name: mutation
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  - method: Nearby
+    name: circuitbreaker
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  - method: Nearby
+    name: logging
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/geo.proto
+  search->rate:
+  - method: GetRates
+    name: circuitbreaker
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto
+  - method: GetRates
+    name: ratelimit
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto
+  - method: GetRates
+    name: fault
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto
+  - method: GetRates
+    name: mutation
+    position: S
+    proto: /users/xzhu/adn-compiler/examples/proto/rate.proto
