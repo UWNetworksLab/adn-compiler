@@ -34,8 +34,10 @@ if __name__ == "__main__":
                 file_path = os.path.join(subdir, file)
                 adn_content = open(file_path).read()
                 if "strong" in file_path:
-                    assert "@consistency" in adn_content, file_path
-                if "weak" in file_path:
+                    assert "@consistency(strong)" in adn_content, file_path
+                elif "weak" in file_path:
+                    assert "@consistency(weak)" in adn_content, file_path
+                else:
                     assert "@" not in adn_content, file_path
                 for sname, fname in rpc_name.items():
                     assert f"'{fname}'" not in adn_content or sname in subdir, file_path

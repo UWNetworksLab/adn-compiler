@@ -1,5 +1,6 @@
 internal
 {
+	@consistency(weak) @combiner(sum) @persistence(true)
 	cache: Map<string, string>
 }
 
