@@ -624,7 +624,7 @@ class WasmGenerator(Visitor):
             vec_type = type_def[4:].split(">")[0].strip()
             # If the vector state requires strong consistency, we need to rely on an external storage
             # Otherwise (local state or eventual consistent state), use a local vector
-            if node.consistency and node.consistency == "strong":
+            if node.consistency == "strong":
                 return WasmSyncVecType(map_basic_type(vec_type))
             else:
                 return WasmVecType(map_basic_type(vec_type))
@@ -634,7 +634,7 @@ class WasmGenerator(Visitor):
             value_type = temp.split(",")[1].strip()
             # If the map state requires strong consistency, we need to rely on an external storage
             # Otherwise (local state or eventual consistent state), use a local map
-            if node.consistency and node.consistency == "strong":
+            if node.consistency == "strong":
                 return WasmSyncMapType(
                     map_basic_type(key_type), map_basic_type(value_type)
                 )
