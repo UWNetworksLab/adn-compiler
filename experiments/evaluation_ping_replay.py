@@ -123,14 +123,12 @@ def run_trial(spec_path):
     # Step 2: Collect latency and CPU result for pre- and post- optimization
     for mode in results.keys():
 
-        spec_path = os.path.join(gen_dir, "randomly_generated_spec.yml")
-
         # Compile the elements
         compile_cmd = [
             "python3.10",
             os.path.join(ROOT_DIR, "compiler/main.py"),
             "--spec",
-            os.path.join(EXP_DIR, spec_path),
+            os.path.join(EXP_DIR, os.path.join(gen_dir, "randomly_generated_spec.yml")),
             "--backend",
             args.backend,
             "--replica",
