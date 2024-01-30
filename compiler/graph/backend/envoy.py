@@ -136,7 +136,7 @@ def scriptgen_envoy(
                     "stateful"
                 ]
                 == True
-                and element.prop["state"]["consistency"] == "strong"
+                and element.prop["state"]["consistency"] in ["strong", "weak"]
             ):
                 # Add webdis config
                 webdis_service_copy, webdis_deploy_copy = deepcopy(
