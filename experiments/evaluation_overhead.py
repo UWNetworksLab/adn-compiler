@@ -82,7 +82,7 @@ def parse_args():
         "--cpu_duration", help="wrk2 duration for cpu usage test", type=int, default=60
     )
     parser.add_argument(
-        "--target_rate", help="wrk2 request rate", type=int, default=4000
+        "--target_rate", help="wrk2 request rate", type=int, default=10000
     )
     return parser.parse_args()
 
@@ -131,12 +131,9 @@ def run_trial(curr_trial_num) -> List[Element]:
                 "10",
             ]
 
-            # Specify the equivalence level (no, weak, strong, ignore)
-
+            compile_cmd.extend(["--opt_level", "no"])
             if mode == "handwritten":
                 compile_cmd.extend(["--pseudo_impl"])
-            else:
-                compile_cmd.extend(["--opt_level", "no"])
 
             EVAL_LOG.info(f"[{mode}] Compiling spec...")
             execute_local(compile_cmd)

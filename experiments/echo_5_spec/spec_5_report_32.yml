@@ -1,0 +1,28 @@
+app_manifest: ping-pong-app.yaml
+app_name: ping-pong-app
+app_structure:
+- frontend->ping
+edge:
+  frontend->ping:
+  - method: PingEcho
+    name: logging
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+  - method: PingEcho
+    name: admissioncontrol
+    position: C
+    proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+  - method: PingEcho
+    name: fault
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+  - method: PingEcho
+    name: bandwidthlimit
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+  - method: PingEcho
+    name: circuitbreaker
+    position: C/S
+    proto: /users/xzhu/adn-compiler/examples/proto/ping.proto
+link:
+  frontend->ping: []
