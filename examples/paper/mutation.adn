@@ -3,7 +3,7 @@ state:
 init:
 
 req(rpc):
-    set(rpc, 'name', 'orange')
+    set(rpc, 'name', get(rpc, 'name'))
     send(rpc, down)
 
 resp(rpc):
